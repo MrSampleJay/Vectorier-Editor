@@ -6,20 +6,20 @@ using UnityEditor;
 using UnityEngine;
 using Vectorier.XML;
 using Vectorier.Handler;
-using Vectorier.Debug;
 
 namespace Vectorier.Core
 {
     public class Buildmap : EditorWindow
     {
         private BuildmapConfig config;
-        private Vector2 scrollPos;
-        private Vector2 commonModeScroll;
-        private Vector2 hunterModeScroll;
 
-        // ============================================================
-        // MENU ITEM
-        // ============================================================
+        private Vector2 mainScrollPosition;
+        private Vector2 commonModeScrollPosition;
+        private Vector2 hunterModeScrollPosition;
+
+        // -------------------------
+        // Menu
+        // -------------------------
         [MenuItem("Vectorier/Build")]
         public static void ShowWindow()
         {
@@ -36,20 +36,23 @@ namespace Vectorier.Core
             SaveConfig();
         }
 
+        // -------------------------
+        // Config
+        // -------------------------
         private void LoadOrCreateConfig()
         {
-            string path = "Assets/Editor/VectorierConfig/BuildmapConfig.asset";
-            string folder = Path.GetDirectoryName(path);
+            string assetPath = "Assets/Editor/Config/BuildmapConfig.asset";
+            string folder = Path.GetDirectoryName(assetPath);
             if (!Directory.Exists(folder))
                 Directory.CreateDirectory(folder);
 
-            config = AssetDatabase.LoadAssetAtPath<BuildmapConfig>(path);
+            config = AssetDatabase.LoadAssetAtPath<BuildmapConfig>(assetPath);
             if (config == null)
             {
                 config = ScriptableObject.CreateInstance<BuildmapConfig>();
-                AssetDatabase.CreateAsset(config, path);
+                AssetDatabase.CreateAsset(config, assetPath);
                 AssetDatabase.SaveAssets();
-                UnityEngine.Debug.Log("[Buildmap] Created new configuration asset at " + path);
+                UnityEngine.Debug.Log("[Buildmap] Created new configuration asset at " + assetPath);
             }
         }
 
@@ -62,9 +65,9 @@ namespace Vectorier.Core
             }
         }
 
-        // ============================================================
+        // -------------------------
         // UI
-        // ============================================================
+        // -------------------------
         private void OnGUI()
         {
             if (config == null)
@@ -73,9 +76,9 @@ namespace Vectorier.Core
                 return;
             }
 
-            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(true));
+            mainScrollPosition = EditorGUILayout.BeginScrollView(mainScrollPosition, GUILayout.ExpandHeight(true));
 
-            EditorGUILayout.LabelField("Vectorier Level Builder", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Vectorier XML Builder", EditorStyles.boldLabel);
             EditorGUILayout.Space();
 
             config.exportType = (BuildmapConfig.ExportType)EditorGUILayout.EnumPopup("Export Type", config.exportType);
@@ -85,10 +88,13 @@ namespace Vectorier.Core
             switch (config.exportType)
             {
                 case BuildmapConfig.ExportType.Level:
-                    DrawLevelConfig();
+                    DrawLevelConfigUI();
                     break;
                 case BuildmapConfig.ExportType.Objects:
-                    DrawObjectsConfig();
+                    DrawObjectsConfigUI();
+                    break;
+                case BuildmapConfig.ExportType.Buildings:
+                    DrawBuildingsConfigUI();
                     break;
             }
 
@@ -98,23 +104,28 @@ namespace Vectorier.Core
                 SaveConfig();
                 if (config.exportType == BuildmapConfig.ExportType.Level)
                     BuildLevel();
-                else
+                else if (config.exportType == BuildmapConfig.ExportType.Objects)
                     BuildObjects();
+                else
+                    BuildBuildings();
             }
 
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawLevelConfig()
+        // -------------------------
+        // UI Drawers
+        // -------------------------
+        private void DrawLevelConfigUI()
         {
             config.filePathDirectory = EditorGUILayout.TextField("File Path Directory", config.filePathDirectory);
-            config.levelName = EditorGUILayout.TextField("Level Name", config.levelName);
+            config.fileName = EditorGUILayout.TextField("Level Name", config.fileName);
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("<Sets>", EditorStyles.boldLabel);
-            DrawSetList("City", config.citySets);
-            DrawSetList("Ground", config.groundSets);
-            DrawSetList("Library", config.librarySets);
+            DrawSetListUI("City", config.citySets);
+            DrawSetListUI("Ground", config.groundSets);
+            DrawSetListUI("Library", config.librarySets);
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("<Music>", EditorStyles.boldLabel);
@@ -124,20 +135,16 @@ namespace Vectorier.Core
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("<Models>", EditorStyles.boldLabel);
 
-            // Common Mode
             EditorGUILayout.LabelField("Common Mode");
-            commonModeScroll = EditorGUILayout.BeginScrollView(
-                commonModeScroll,
-                true,  // horizontal scroll
-                true,  // vertical scroll
-                GUILayout.Height(100) // visible area height
+            commonModeScrollPosition = EditorGUILayout.BeginScrollView(
+                commonModeScrollPosition,
+                true,
+                true,
+                GUILayout.Height(100)
             );
             config.commonModeModels = EditorGUILayout.TextArea(
                 config.commonModeModels,
-                new GUIStyle(EditorStyles.textArea)
-                {
-                    wordWrap = false
-                },
+                new GUIStyle(EditorStyles.textArea) { wordWrap = false },
                 GUILayout.ExpandHeight(true),
                 GUILayout.ExpandWidth(true)
             );
@@ -145,20 +152,16 @@ namespace Vectorier.Core
 
             EditorGUILayout.Space();
 
-            // Hunter Mode
             EditorGUILayout.LabelField("Hunter Mode");
-            hunterModeScroll = EditorGUILayout.BeginScrollView(
-                hunterModeScroll,
-                true,  // horizontal scroll
-                true,  // vertical scroll
+            hunterModeScrollPosition = EditorGUILayout.BeginScrollView(
+                hunterModeScrollPosition,
+                true,
+                true,
                 GUILayout.Height(100)
             );
             config.hunterModeModels = EditorGUILayout.TextArea(
                 config.hunterModeModels,
-                new GUIStyle(EditorStyles.textArea)
-                {
-                    wordWrap = false
-                },
+                new GUIStyle(EditorStyles.textArea) { wordWrap = false },
                 GUILayout.ExpandHeight(true),
                 GUILayout.ExpandWidth(true)
             );
@@ -167,87 +170,77 @@ namespace Vectorier.Core
             EditorGUILayout.Space();
             config.coinValue = EditorGUILayout.IntField("Coins Value", config.coinValue);
             config.fastBuild = EditorGUILayout.Toggle("Fast Build", config.fastBuild);
+            config.exportAsXML = EditorGUILayout.Toggle("Export as XML", config.exportAsXML);
         }
 
-        private void DrawObjectsConfig()
+        private void DrawObjectsConfigUI()
         {
             config.filePathDirectory = EditorGUILayout.TextField("File Path Directory", config.filePathDirectory);
-            config.levelName = EditorGUILayout.TextField("Level Name", config.levelName);
+            config.fileName = EditorGUILayout.TextField("Objects Name", config.fileName);
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("<Sets>", EditorStyles.boldLabel);
-            DrawSetList("City", config.citySets);
-            DrawSetList("Ground", config.groundSets);
-            DrawSetList("Library", config.librarySets);
+            DrawSetListUI("City", config.citySets);
+            DrawSetListUI("Ground", config.groundSets);
+            DrawSetListUI("Library", config.librarySets);
+
             config.fastBuild = EditorGUILayout.Toggle("Fast Build", config.fastBuild);
+            config.exportAsXML = EditorGUILayout.Toggle("Export as XML", config.exportAsXML);
         }
 
-        private void DrawSetList(string name, List<string> list)
+        private void DrawBuildingsConfigUI()
         {
-            EditorGUILayout.LabelField(name + " Sets", EditorStyles.boldLabel);
+            config.filePathDirectory = EditorGUILayout.TextField("File Path Directory", config.filePathDirectory);
+            config.fileName = EditorGUILayout.TextField("Buildings Name", config.fileName);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("<Sets>", EditorStyles.boldLabel);
+            DrawSetListUI("City", config.citySets);
+            DrawSetListUI("Ground", config.groundSets);
+            DrawSetListUI("Library", config.librarySets);
+
+            config.fastBuild = EditorGUILayout.Toggle("Fast Build", config.fastBuild);
+            config.exportAsXML = EditorGUILayout.Toggle("Export as XML", config.exportAsXML);
+        }
+
+        private void DrawSetListUI(string setName, List<string> setList)
+        {
+            EditorGUILayout.LabelField(setName + " Sets", EditorStyles.boldLabel);
             int removeIndex = -1;
-            for (int i = 0; i < list.Count; i++)
+            for (int i = 0; i < setList.Count; i++)
             {
                 EditorGUILayout.BeginHorizontal();
-                list[i] = EditorGUILayout.TextField(list[i]);
+                setList[i] = EditorGUILayout.TextField(setList[i]);
                 if (GUILayout.Button("X", GUILayout.Width(20)))
                     removeIndex = i;
                 EditorGUILayout.EndHorizontal();
             }
             if (removeIndex >= 0)
-                list.RemoveAt(removeIndex);
+                setList.RemoveAt(removeIndex);
 
-            if (GUILayout.Button($"Add {name} Set"))
-                list.Add("");
+            if (GUILayout.Button($"Add {setName} Set"))
+                setList.Add("");
         }
 
-        // ============================================================
-        // BUILD
-        // ============================================================
+        // -------------------------
+        // Build operations
+        // -------------------------
         private void BuildLevel()
         {
             string xmlFolder = Path.Combine(Application.dataPath, "XML");
             string templatePath = Path.Combine(xmlFolder, "level-template.xml");
             string levelFolder = Path.Combine(xmlFolder, "level_xml");
 
-            // Ensure level_xml directory exists
-            if (!Directory.Exists(levelFolder))
-                Directory.CreateDirectory(levelFolder);
+            EnsureDirectoryExists(levelFolder);
 
-            // Write base XML template
             XmlUtility xmlUtility = new XmlUtility();
             xmlUtility.Create("Root");
-
             XmlElement root = xmlUtility.RootElement;
 
-            // --- Sets ---
-            XmlElement setsElement = xmlUtility.AddElement(root, "Sets");
-            foreach (var c in config.citySets)
-            {
-                if (!string.IsNullOrEmpty(c))
-                {
-                    XmlElement city = xmlUtility.AddElement(setsElement, "City");
-                    xmlUtility.SetAttribute(city, "FileName", c);
-                }
-            }
-            foreach (var g in config.groundSets)
-            {
-                if (!string.IsNullOrEmpty(g))
-                {
-                    XmlElement ground = xmlUtility.AddElement(setsElement, "Ground");
-                    xmlUtility.SetAttribute(ground, "FileName", g);
-                }
-            }
-            foreach (var l in config.librarySets)
-            {
-                if (!string.IsNullOrEmpty(l))
-                {
-                    XmlElement lib = xmlUtility.AddElement(setsElement, "Library");
-                    xmlUtility.SetAttribute(lib, "FileName", l);
-                }
-            }
+            // Add sets
+            AddSetsToXml(xmlUtility, root);
 
-            // --- Music ---
+            // Music
             if (!string.IsNullOrEmpty(config.musicName))
             {
                 XmlElement musicElement = xmlUtility.AddElement(root, "Music");
@@ -255,7 +248,7 @@ namespace Vectorier.Core
                 xmlUtility.SetAttribute(musicElement, "Volume", config.musicVolume);
             }
 
-            // --- Models ---
+            // Models
             if (!string.IsNullOrEmpty(config.commonModeModels))
             {
                 XmlElement modelsCommon = xmlUtility.AddElement(root, "Models");
@@ -271,7 +264,7 @@ namespace Vectorier.Core
                 modelsHunter.InnerXml = config.hunterModeModels;
             }
 
-            // --- Coins ---
+            // Coins
             if (config.coinValue > 0)
             {
                 XmlElement coins = xmlUtility.AddElement(root, "Coins");
@@ -280,29 +273,22 @@ namespace Vectorier.Core
                 xmlUtility.SetAttribute(objects, "Name", "Money");
             }
 
-            // Save the template
+            // Save template and export
             xmlUtility.Save(templatePath);
-            DebugLog.Info("[Buildmap] Level template saved: " + templatePath);
 
-            // Run scene export
             ExportHandler.Export(ExportHandler.ExportMode.Level, templatePath);
 
-            // Copy and rename the exported XML using Level Name
-            if (string.IsNullOrEmpty(config.levelName))
+            if (string.IsNullOrEmpty(config.fileName))
             {
-                DebugLog.Warn("[Buildmap] Level Name is empty. Using 'UnnamedLevel'.");
-                config.levelName = "UnnamedLevel";
+                UnityEngine.Debug.LogWarning("[Buildmap] Level Name is empty. Using 'UnnamedLevel'.");
+                config.fileName = "UnnamedLevel";
             }
 
-            string destinationXml = Path.Combine(levelFolder, $"{config.levelName}.xml");
+            string destinationXml = Path.Combine(levelFolder, $"{config.fileName}.xml");
 
-            // Format XML before copying
             XmlUtility.FormatXML(templatePath, templatePath);
-
             File.Copy(templatePath, destinationXml, true);
-            DebugLog.Info($"[Buildmap] Copied and renamed to: {destinationXml}");
 
-            // Compile .dz archive
             CompileXML(templatePath);
         }
 
@@ -312,77 +298,142 @@ namespace Vectorier.Core
             string templatePath = Path.Combine(xmlFolder, "objects-template.xml");
             string levelFolder = Path.Combine(xmlFolder, "level_xml");
 
-            // Ensure level_xml directory exists
-            if (!Directory.Exists(levelFolder))
-                Directory.CreateDirectory(levelFolder);
+            EnsureDirectoryExists(levelFolder);
 
-            // Write base XML template
             XmlUtility xmlUtility = new XmlUtility();
             xmlUtility.Create("Root");
-
             XmlElement root = xmlUtility.RootElement;
 
-            // --- Sets ---
-            XmlElement setsElement = xmlUtility.AddElement(root, "Sets");
-            foreach (var c in config.citySets)
-            {
-                if (!string.IsNullOrEmpty(c))
-                {
-                    XmlElement city = xmlUtility.AddElement(setsElement, "City");
-                    xmlUtility.SetAttribute(city, "FileName", c);
-                }
-            }
-            foreach (var g in config.groundSets)
-            {
-                if (!string.IsNullOrEmpty(g))
-                {
-                    XmlElement ground = xmlUtility.AddElement(setsElement, "Ground");
-                    xmlUtility.SetAttribute(ground, "FileName", g);
-                }
-            }
-            foreach (var l in config.librarySets)
-            {
-                if (!string.IsNullOrEmpty(l))
-                {
-                    XmlElement lib = xmlUtility.AddElement(setsElement, "Library");
-                    xmlUtility.SetAttribute(lib, "FileName", l);
-                }
-            }
+            AddSetsToXml(xmlUtility, root);
 
-            // Save template
             xmlUtility.Save(templatePath);
-            DebugLog.Info("[Buildmap] Objects template saved: " + templatePath);
 
-            // Run scene export
             ExportHandler.Export(ExportHandler.ExportMode.Objects, templatePath);
 
-            // Copy and rename exported XML
-            if (string.IsNullOrEmpty(config.levelName))
+            if (string.IsNullOrEmpty(config.fileName))
             {
-                DebugLog.Warn("[Buildmap] Level Name is empty. Using 'UnnamedObjectSet'.");
-                config.levelName = "UnnamedObjectSet";
+                UnityEngine.Debug.LogWarning("[Buildmap] Name is empty. Using 'UnnamedObjectSet'.");
+                config.fileName = "UnnamedObjectSet";
             }
 
-            string destinationXml = Path.Combine(levelFolder, $"{config.levelName}.xml");
+            string destinationXml = Path.Combine(levelFolder, $"{config.fileName}.xml");
 
-            // Format XML before copying
             XmlUtility.FormatXML(templatePath, templatePath);
-
             File.Copy(templatePath, destinationXml, true);
-            DebugLog.Info($"[Buildmap] Copied and renamed to: {destinationXml}");
 
-            // Compile
             CompileXML(templatePath);
+        }
+
+        private void BuildBuildings()
+        {
+            string xmlFolder = Path.Combine(Application.dataPath, "XML");
+            string templatePath = Path.Combine(xmlFolder, "buildings-template.xml");
+            string levelFolder = Path.Combine(xmlFolder, "level_xml");
+
+            EnsureDirectoryExists(levelFolder);
+
+            XmlUtility xmlUtility = new XmlUtility();
+            xmlUtility.Create("Root");
+            XmlElement root = xmlUtility.RootElement;
+
+            AddSetsToXml(xmlUtility, root);
+
+            xmlUtility.Save(templatePath);
+
+            ExportHandler.Export(ExportHandler.ExportMode.Buildings, templatePath);
+
+            if (string.IsNullOrEmpty(config.fileName))
+            {
+                UnityEngine.Debug.LogWarning("[Buildmap] Name is empty. Using 'UnnamedBuildingsSet'.");
+                config.fileName = "UnnamedBuildingsSet";
+            }
+
+            string destinationXml = Path.Combine(levelFolder, $"{config.fileName}.xml");
+
+            XmlUtility.FormatXML(templatePath, templatePath);
+            File.Copy(templatePath, destinationXml, true);
+
+            CompileXML(templatePath);
+        }
+
+        // -------------------------
+        // Helpers
+        // -------------------------
+        private void EnsureDirectoryExists(string path)
+        {
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+        }
+
+        private void AddSetsToXml(XmlUtility xmlUtility, XmlElement parentElement)
+        {
+            XmlElement setsElement = xmlUtility.AddElement(parentElement, "Sets");
+
+            foreach (var citySet in config.citySets)
+            {
+                if (!string.IsNullOrEmpty(citySet))
+                {
+                    XmlElement cityElement = xmlUtility.AddElement(setsElement, "City");
+                    xmlUtility.SetAttribute(cityElement, "FileName", citySet);
+                }
+            }
+
+            foreach (var groundSet in config.groundSets)
+            {
+                if (!string.IsNullOrEmpty(groundSet))
+                {
+                    XmlElement groundElement = xmlUtility.AddElement(setsElement, "Ground");
+                    xmlUtility.SetAttribute(groundElement, "FileName", groundSet);
+                }
+            }
+
+            foreach (var librarySet in config.librarySets)
+            {
+                if (!string.IsNullOrEmpty(librarySet))
+                {
+                    XmlElement libraryElement = xmlUtility.AddElement(setsElement, "Library");
+                    xmlUtility.SetAttribute(libraryElement, "FileName", librarySet);
+                }
+            }
         }
 
         private void CompileXML(string xmlPath)
         {
-            string batchFile = config.fastBuild ? "compile-level-fast.bat" : "compile-level.bat";
+            // If "Export as XML" is enabled, copy directly to user-specified directory
+            if (config.exportAsXML)
+            {
+                if (string.IsNullOrEmpty(config.filePathDirectory))
+                {
+                    UnityEngine.Debug.LogWarning("[Buildmap] File Path Directory is empty. Cannot export XML.");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(config.fileName))
+                {
+                    UnityEngine.Debug.LogWarning("[Buildmap] Name is empty. Cannot export XML.");
+                    return;
+                }
+
+                string destXml = Path.Combine(config.filePathDirectory, $"{config.fileName}.xml");
+                try
+                {
+                    File.Copy(xmlPath, destXml, true);
+                    UnityEngine.Debug.Log($"[Buildmap] Exported XML copied to: {destXml}");
+                }
+                catch (System.Exception ex)
+                {
+                    UnityEngine.Debug.LogError("[Buildmap] Failed to copy XML: " + ex.Message);
+                }
+                return; // Do not run batch when exporting raw XML
+            }
+
+            // Run batch builder
+            string batchFile = config.fastBuild ? "compile-fast.bat" : "compile.bat";
             string batchPath = Path.Combine(Application.dataPath, "XML", batchFile);
 
             if (!File.Exists(batchPath))
             {
-                DebugLog.Error("[Buildmap] Batch file not found: " + batchPath);
+                UnityEngine.Debug.LogError("[Buildmap] Batch file not found: " + batchPath);
                 return;
             }
 

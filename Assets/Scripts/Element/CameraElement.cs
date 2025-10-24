@@ -20,7 +20,7 @@ namespace Vectorier.Element
             XmlElement cameraElement = xmlUtility.AddElement(parentElement, "Camera");
 
             // Compute attributes
-            Vector3 position = gameObject.transform.position;
+            Vector3 position = gameObject.transform.localPosition;
             float x = position.x * 100f;
             float y = position.y * -100f; // Vector -Y is up.
 

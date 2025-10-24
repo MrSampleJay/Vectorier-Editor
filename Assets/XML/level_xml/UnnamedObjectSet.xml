@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Root>
+  <Track>
+    <Object Factor="0.05">
+      <Content>
+        <Object Name="Test" X="0" Y="0">
+          <Content>
+            <Image X="0" Y="0" ClassName="tp_glass" Width="220" Height="430" NativeX="220" NativeY="430" />
+          </Content>
+        </Object>
+      </Content>
+    </Object>
+    <Object Factor="1">
+      <Content>
+        <Image X="-230" Y="-102" ClassName="cons_barrel" Width="64" Height="82" NativeX="64" NativeY="82" />
+        <Image X="41" Y="-325" ClassName="tp_display" Width="230" Height="90" NativeX="230" NativeY="90" />
+        <Camera X="0" Y="0" />
+        <Spawn X="-565" Y="-202" Name="PlayerSpawn" Animation="3" />
+      </Content>
+    </Object>
+  </Track>
+</Root>

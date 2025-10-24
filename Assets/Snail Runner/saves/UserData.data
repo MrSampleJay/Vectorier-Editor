@@ -1,0 +1,37 @@
+{
+  "V": 1,
+  "MainData": {
+    "Coins": 980,
+    "Unlock": true
+  },
+  "Stats": {
+    "TotalRunningDistance": 6581.3623,
+    "JumpsCount": 277,
+    "SlidesCount": 58,
+    "BonusCollected": 50,
+    "CoinsCollected": 40,
+    "TricksPerformed": 22,
+    "Death": 2,
+    "DeathByHunter": 3,
+    "HuntersKilled": 0,
+    "GlassBroken": 8
+  },
+  "Options": {
+    "SoundLevel": 1.0,
+    "MusicLevel": 1.0,
+    "LastUsedSetSoundValue": 0.0,
+    "LastUsedSetMusicValue": 0.0,
+    "Sound": true,
+    "Music": true,
+    "GDPR": true,
+    "Locale": null,
+    "CurrentLocaleIndex": 0,
+    "GameRated": false,
+    "ShowRateGameNextTime": false
+  },
+  "GameStats": {},
+  "ShopData": {
+    "Items": "[{\"id\":\"TRICK_JUMPTUMBLE\",\"count\":42,\"isEquip\":true},{\"id\":\"TRICK_SPINNINGVAULT\",\"count\":42,\"isEquip\":true}]"
+  },
+  "OldData": {}
+}

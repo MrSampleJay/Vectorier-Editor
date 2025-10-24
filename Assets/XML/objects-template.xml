@@ -1,1 +1,10 @@
-﻿
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Root>
+  <Objects>
+    <Object Name="Test">
+      <Content>
+        <Image X="125.912" Y="-206.839" ClassName="tp_glass" Width="220" Height="430" NativeX="220" NativeY="430" />
+      </Content>
+    </Object>
+  </Objects>
+</Root>

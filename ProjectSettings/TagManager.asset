@@ -4,16 +4,18 @@
 TagManager:
   serializedVersion: 2
   tags:
+  - //
+  - Object
   - Image
   - Trigger
   - Area
-  - Object
-  - Trapezoid
   - Platform
+  - Trapezoid
   - Spawn
   - Camera
-  - Item
   - Model
+  - Item
+  - Animation
   layers:
   - Default
   - TransparentFX

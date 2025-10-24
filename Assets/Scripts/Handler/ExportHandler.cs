@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using System.Linq;
 using UnityEngine;
 using Vectorier.XML;
 using Vectorier.Element;
-using Vectorier.Debug;
-using System.Linq;
 
 namespace Vectorier.Handler
 {
@@ -14,180 +13,208 @@ namespace Vectorier.Handler
         public enum ExportMode
         {
             Level,
-            Objects
+            Objects,
+            Buildings
         }
 
-        public static void Export(ExportMode mode, string outputPath)
+        public static void Export(ExportMode exportMode, string outputPath)
         {
             if (string.IsNullOrEmpty(outputPath))
             {
-                DebugLog.Error("[ExportHandler] Output path is empty.");
+                Debug.LogError("[ExportHandler] Output path is empty.");
                 return;
             }
 
             XmlUtility xmlUtility = new XmlUtility();
 
-            if (File.Exists(outputPath))
-            {
-                xmlUtility.Load(outputPath);
-                DebugLog.Info("[ExportHandler] Loaded existing XML to append content.");
-            }
-            else
-            {
-                xmlUtility.Create("Root");
-                DebugLog.Info("[ExportHandler] Created new XML document.");
-            }
+            if (File.Exists(outputPath)) xmlUtility.Load(outputPath);
+            else xmlUtility.Create("Root");
 
-            XmlElement root = xmlUtility.RootElement;
+            XmlElement rootElement = xmlUtility.RootElement;
 
-            switch (mode)
+            switch (exportMode)
             {
                 case ExportMode.Level:
-                    HandleLevelExport(xmlUtility, root);
+                    WriteLevel(xmlUtility, rootElement, exportMode);
                     break;
 
                 case ExportMode.Objects:
-                    HandleObjectsExport(xmlUtility, root);
+                    WriteObjects(xmlUtility, rootElement, exportMode);
+                    break;
+
+                case ExportMode.Buildings:
+                    WriteBuildings(xmlUtility, rootElement, exportMode);
                     break;
             }
 
-            xmlUtility.RemoveEmptyElements(root);
+            xmlUtility.RemoveEmptyElements(rootElement);
             xmlUtility.Save(outputPath);
 
-            DebugLog.Info($"[ExportHandler] Export completed: {outputPath}");
+            Debug.Log($"[ExportHandler] Export completed: {outputPath}");
         }
 
-        private static void HandleLevelExport(XmlUtility xmlUtility, XmlElement root)
+        // ============================================================
+        // Level Export
+        // ============================================================
+        private static void WriteLevel(XmlUtility xmlUtility, XmlElement rootElement, ExportMode exportMode)
         {
-            XmlElement trackElement = xmlUtility.AddElement(root, "Track");
-            Dictionary<string, XmlElement> layerObjects = new Dictionary<string, XmlElement>();
-            Dictionary<string, List<GameObject>> groupedObjects = new Dictionary<string, List<GameObject>>();
+            XmlElement trackElement = xmlUtility.AddElement(rootElement, "Track");
 
             GameObject[] allObjects = GameObject.FindObjectsOfType<GameObject>();
+            Dictionary<string, List<GameObject>> groupedObjects = new Dictionary<string, List<GameObject>>();
 
-            // Group by layer factor
-            foreach (GameObject obj in allObjects)
+            foreach (GameObject gameObject in allObjects)
             {
-                if (!obj.activeInHierarchy)
-                    continue;
+                if (!IsExportable(gameObject)) continue;
 
-                string tag = obj.tag;
-                if (string.IsNullOrEmpty(tag) || tag == "Untagged")
-                    continue;
-
-                string layerName = LayerToFactor(obj.layer);
-                if (!float.TryParse(layerName, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float layerValue))
-                    layerValue = 1f;
-
-                string layerFactor = layerValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
-
+                string layerFactor = GetLayerFactor(gameObject);
                 if (!groupedObjects.ContainsKey(layerFactor))
                     groupedObjects[layerFactor] = new List<GameObject>();
 
-                groupedObjects[layerFactor].Add(obj);
+                groupedObjects[layerFactor].Add(gameObject);
             }
 
-            // Process by layer factor order (low to high)
-            foreach (var kvp in groupedObjects.OrderBy(k => float.Parse(k.Key, System.Globalization.CultureInfo.InvariantCulture)))
+            foreach (var layer in groupedObjects.OrderBy(l => float.Parse(l.Key, System.Globalization.CultureInfo.InvariantCulture)))
             {
-                string layerFactor = kvp.Key;
-                List<GameObject> objs = kvp.Value;
+                XmlElement objectLayerElement = xmlUtility.AddElement(trackElement, "Object");
+                xmlUtility.SetAttribute(objectLayerElement, "Factor", layer.Key);
+                XmlElement contentElement = xmlUtility.AddElement(objectLayerElement, "Content");
 
-                XmlElement objectElement = xmlUtility.AddElement(trackElement, "Object");
-                xmlUtility.SetAttribute(objectElement, "Factor", layerFactor);
-                XmlElement contentElement = xmlUtility.AddElement(objectElement, "Content");
+                var objectsInLayer = layer.Value;
 
-                // Sort image elements by SpriteRenderer.sortingOrder (ascending)
-                var imageObjs = objs.Where(o => o.tag == "Image").OrderBy(o =>
-                {
-                    var sr = o.GetComponent<SpriteRenderer>();
-                    return sr ? sr.sortingOrder : 0;
-                });
+                foreach (var current in objectsInLayer.Where(o => o.tag == "Object" && !IsChildOfObject(o)))
+                    ObjectElement.WriteToXML(current, xmlUtility, contentElement, exportMode);
 
-                // Write sorted images first
-                foreach (var img in imageObjs)
-                    WriteByTag(img, xmlUtility, contentElement);
+                foreach (var current in objectsInLayer.Where(o => o.tag == "Image" && !IsChildOfObject(o)).OrderBy(o => SortingOrder(o)))
+                    WriteByTag(current, xmlUtility, contentElement);
 
-                // Write non-image objects as-is
-                foreach (var other in objs.Where(o => o.tag != "Image"))
-                    WriteByTag(other, xmlUtility, contentElement);
+                foreach (var current in objectsInLayer.Where(o => o.tag != "Object" && o.tag != "Image" && !IsChildOfObject(o)))
+                    WriteByTag(current, xmlUtility, contentElement);
             }
         }
 
-        private static void HandleObjectsExport(XmlUtility xmlUtility, XmlElement root)
+        // ============================================================
+        // Objects Export
+        // ============================================================
+        private static void WriteObjects(XmlUtility xmlUtility, XmlElement rootElement, ExportMode exportMode)
         {
-            XmlElement objectsElement = xmlUtility.AddElement(root, "Objects");
+            XmlElement objectsRootElement = xmlUtility.AddElement(rootElement, "Objects");
+
             GameObject[] allObjects = GameObject.FindObjectsOfType<GameObject>();
 
-            foreach (GameObject obj in allObjects)
+            foreach (GameObject gameObject in allObjects)
             {
-                if (!obj.activeInHierarchy)
-                    continue;
+                if (!IsExportable(gameObject)) continue;
 
-                string tag = obj.tag;
-                if (string.IsNullOrEmpty(tag) || tag == "Untagged")
-                    continue;
-
-                XmlElement objectElement = xmlUtility.AddElement(objectsElement, "Object");
-                xmlUtility.SetAttribute(objectElement, "Name", obj.name);
-
-                XmlElement contentElement = xmlUtility.AddElement(objectElement, "Content");
-
-                WriteByTag(obj, xmlUtility, contentElement);
+                if (gameObject.CompareTag("Object") && !IsChildOfObject(gameObject))
+                    ObjectElement.WriteToXML(gameObject, xmlUtility, objectsRootElement, exportMode);
             }
         }
 
-        private static void WriteByTag(GameObject obj, XmlUtility xmlUtility, XmlElement parent)
+        // ============================================================
+        // Buildings Export
+        // ============================================================
+        private static void WriteBuildings(XmlUtility xmlUtility, XmlElement rootElement, ExportMode exportMode)
         {
-            switch (obj.tag)
+            XmlElement objectsRootElement = xmlUtility.AddElement(rootElement, "Objects");
+
+            GameObject[] allObjects = GameObject.FindObjectsOfType<GameObject>();
+
+            foreach (GameObject gameObject in allObjects)
+            {
+                if (!IsExportable(gameObject)) continue;
+
+                if (gameObject.CompareTag("Object") && !IsChildOfObject(gameObject))
+                    ObjectElement.WriteToXML(gameObject, xmlUtility, objectsRootElement, exportMode);
+            }
+        }
+
+        // ============================================================
+        // Tag Writers
+        // ============================================================
+        public static void WriteByTag(GameObject gameObject, XmlUtility xmlUtility, XmlElement parentElement)
+        {
+            switch (gameObject.tag)
             {
                 case "Image":
-                    ImageElement.WriteToXML(obj, xmlUtility, parent);
+                    ImageElement.WriteToXML(gameObject, xmlUtility, parentElement);
                     break;
 
                 case "Trigger":
-                    TriggerElement.WriteToXML(obj, xmlUtility, parent);
+                    TriggerElement.WriteToXML(gameObject, xmlUtility, parentElement);
                     break;
 
                 case "Area":
-                    AreaElement.WriteToXML(obj, xmlUtility, parent);
+                    AreaElement.WriteToXML(gameObject, xmlUtility, parentElement);
                     break;
 
                 case "Platform":
-					PlatformElement.WriteToXML(obj, xmlUtility, parent);
-					break;
+                    PlatformElement.WriteToXML(gameObject, xmlUtility, parentElement);
+                    break;
 
                 case "Trapezoid":
-                    TrapezoidElement.WriteToXML(obj, xmlUtility, parent);
+                    TrapezoidElement.WriteToXML(gameObject, xmlUtility, parentElement);
                     break;
 
                 case "Camera":
-                    CameraElement.WriteToXML(obj, xmlUtility, parent);
+                    CameraElement.WriteToXML(gameObject, xmlUtility, parentElement);
                     break;
 
                 case "Spawn":
-                    SpawnElement.WriteToXML(obj, xmlUtility, parent);
+                    SpawnElement.WriteToXML(gameObject, xmlUtility, parentElement);
                     break;
 
                 case "Item":
-                    ItemElement.WriteToXML(obj, xmlUtility, parent);
+                    ItemElement.WriteToXML(gameObject, xmlUtility, parentElement);
                     break;
 
                 case "Model":
-                    ModelElement.WriteToXML(obj, xmlUtility, parent);
+                    ModelElement.WriteToXML(gameObject, xmlUtility, parentElement);
                     break;
 
                 case "Particle":
-                    ModelElement.WriteToXML(obj, xmlUtility, parent);
+                    ParticleElement.WriteToXML(gameObject, xmlUtility, parentElement);
+                    break;
+
+                case "Animation":
+                    AnimationElement.WriteToXML(gameObject, xmlUtility, parentElement);
                     break;
             }
         }
 
-        private static string LayerToFactor(int layer)
+        // ============================================================
+        // Helpers
+        // ============================================================
+        private static bool IsExportable(GameObject gameObject)
         {
-            // Use the actual layer name as the Factor, ex: "0.5"
-            string name = LayerMask.LayerToName(layer);
-            return name;
+            if (!gameObject.activeInHierarchy) return false;
+            if (gameObject.tag == null || gameObject.tag == "Untagged") return false;
+            return true;
+        }
+
+        private static bool IsChildOfObject(GameObject gameObject)
+        {
+            Transform parentTransform = gameObject.transform.parent;
+            while (parentTransform != null)
+            {
+                if (parentTransform.CompareTag("Object")) return true;
+                parentTransform = parentTransform.parent;
+            }
+            return false;
+        }
+
+        private static int SortingOrder(GameObject gameObject)
+        {
+            var renderer = gameObject.GetComponent<SpriteRenderer>();
+            return renderer ? renderer.sortingOrder : 0;
+        }
+
+        private static string GetLayerFactor(GameObject gameObject)
+        {
+            string layerName = LayerMask.LayerToName(gameObject.layer);
+            if (!float.TryParse(layerName, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float factorValue))
+                factorValue = 1f;
+            return factorValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 }

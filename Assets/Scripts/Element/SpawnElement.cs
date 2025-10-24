@@ -17,7 +17,7 @@ namespace Vectorier.Element
             XmlElement spawnElement = xmlUtility.AddElement(parentElement, "Spawn");
 
             // Compute attributes
-            Vector3 position = gameObject.transform.position;
+            Vector3 position = gameObject.transform.localPosition;
             float x = position.x * 100f;
             float y = position.y * -100f; // Vector -Y is up.
 

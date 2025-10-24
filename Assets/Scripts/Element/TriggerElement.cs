@@ -31,7 +31,7 @@ namespace Vectorier.Element
             XmlElement staticElement = xmlUtility.GetOrCreateElement(propertiesElement, "Static");
 
             // Compute attributes
-            Vector3 position = gameObject.transform.position;
+            Vector3 position = gameObject.transform.localPosition;
             Vector3 scale = gameObject.transform.lossyScale;
             float x = position.x * 100f;
             float y = position.y * -100f; // Vector -Y is up.

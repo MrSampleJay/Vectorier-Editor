@@ -6,14 +6,15 @@ namespace Vectorier.Core
     [System.Serializable]
     public class BuildmapConfig : ScriptableObject
     {
-        public enum ExportType { Level, Objects }
+        public enum ExportType { Level, Objects, Buildings }
 
         public ExportType exportType = ExportType.Level;
 
         // Common
         public string filePathDirectory = "";
-        public string levelName = "";
+        public string fileName = "";
         public bool fastBuild = false;
+        public bool exportAsXML = false;
 
         // Sets
         public List<string> citySets = new List<string>();

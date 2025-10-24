@@ -20,8 +20,8 @@ namespace Vectorier.Element
             // Create <Item> node
             XmlElement itemElement = xmlUtility.AddElement(parentElement, "Item");
 
-            // Compute coordinates (same convention as others)
-            Vector3 pos = gameObject.transform.position;
+            // Compute coordinates
+            Vector3 pos = gameObject.transform.localPosition;
             float x = pos.x * 100f;
             float y = pos.y * -100f;
 

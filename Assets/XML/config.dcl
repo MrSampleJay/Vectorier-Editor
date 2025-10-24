@@ -132,5 +132,9 @@ file TECHPARK_STORY_08.xml 0 zlib
 file TECHPARK_STORY_09.xml 0 zlib
 file TECHPARK_STORY_10.xml 0 zlib
 file TECHPARK_STORY_11.xml 0 zlib
+file test.xml 0 zlib
 file TriggerTemplates.xml 0 zlib
+file Unnamed.xml 0 zlib
+file UnnamedBuildingsSet.xml 0 zlib
 file UnnamedLevel.xml 0 zlib
+file UnnamedObjectSet.xml 0 zlib
