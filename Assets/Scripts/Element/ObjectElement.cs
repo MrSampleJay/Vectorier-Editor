@@ -11,9 +11,7 @@ namespace Vectorier.Element
 {
     public static class ObjectElement
     {
-        // =====================================================================
-        // EXPORT
-        // =====================================================================
+        // ================= EXPORT ================= //
 
         public static XmlElement WriteToXML(GameObject sourceObject, XmlUtility xmlUtility, XmlElement parentXmlElement, ExportHandler.ExportMode exportMode)
         {
@@ -62,11 +60,9 @@ namespace Vectorier.Element
             WriteChildren(sourceObject, xmlUtility, contentElement, exportMode);
         }
 
-        // =====================================================================
-        // IMPORT
-        // =====================================================================
+        // ================= IMPORT ================= //
 
-        public static GameObject WriteToScene(XmlElement xmlElement, Transform parentTransform, string layerName, bool includeBuildingsMarker)
+        public static GameObject WriteToScene(XmlElement xmlElement, Transform parentTransform, string layerName, bool includeBuildingsMarker, XmlUtility xmlUtility)
         {
             if (xmlElement == null)
                 return null;
@@ -75,7 +71,8 @@ namespace Vectorier.Element
             Element.ApplyLayer(gameObject, layerName);
 
             CreateInOutMarkers(xmlElement, gameObject, includeBuildingsMarker);
-            WriteSceneChildren(xmlElement, gameObject.transform, layerName, includeBuildingsMarker);
+            WriteSceneChildren(xmlElement, gameObject.transform, layerName, includeBuildingsMarker, xmlUtility);
+            ApplyDynamic(gameObject, xmlUtility, xmlElement);
 
             return gameObject;
         }
@@ -93,7 +90,7 @@ namespace Vectorier.Element
             return gameObject;
         }
 
-        private static void WriteSceneChildren(XmlElement xmlElement, Transform parentTransform, string layerName, bool includeBuildingsMarker)
+        private static void WriteSceneChildren(XmlElement xmlElement, Transform parentTransform, string layerName, bool includeBuildingsMarker, XmlUtility xmlUtility)
         {
             XmlElement contentElement = xmlElement.SelectSingleNode("Content") as XmlElement;
             if (contentElement == null)
@@ -102,13 +99,11 @@ namespace Vectorier.Element
             foreach (XmlNode childNode in contentElement.ChildNodes)
             {
                 if (childNode is XmlElement childElement)
-                    ImportHandler.WriteByTag(childElement, parentTransform, layerName, includeBuildingsMarker);
+                    ImportHandler.WriteByTag(childElement, parentTransform, layerName, includeBuildingsMarker, xmlUtility);
             }
         }
 
-        // =====================================================================
-        // POSITION
-        // =====================================================================
+        // ================= POSITION ================= //
 
         private static Vector3 GetPosition(XmlElement xmlElement)
         {
@@ -129,9 +124,7 @@ namespace Vectorier.Element
             return new Vector3(positionX, positionY, 0f);
         }
 
-        // =====================================================================
-        // CHILDREN EXPORT
-        // =====================================================================
+        // ================= CHILDREN EXPORT ================= //
 
         private static void WriteChildren(GameObject parentObject, XmlUtility xmlUtility, XmlElement parentXmlElement, ExportHandler.ExportMode exportMode)
         {
@@ -184,9 +177,7 @@ namespace Vectorier.Element
             return renderer != null ? renderer.sortingOrder : 0;
         }
 
-        // =====================================================================
-        // BUILDINGS
-        // =====================================================================
+        // ================= BUILDINGS ================= //
 
         private static void CreateInOutMarkers(XmlElement xmlElement, GameObject parentObject, bool includeBuildingsMarker)
         {
@@ -269,9 +260,7 @@ namespace Vectorier.Element
             return baseBounds;
         }
 
-        // =====================================================================
-        // COMPONENTS
-        // =====================================================================
+        // ================= COMPONENTS ================= //
 
         private static void WriteSelection( GameObject sourceObject, XmlUtility xmlUtility, XmlElement parentXmlElement)
         {
@@ -297,9 +286,27 @@ namespace Vectorier.Element
             dynamicTransform.WriteToXML(xmlUtility, propertiesElement);
         }
 
-        // =====================================================================
-        // NAME
-        // =====================================================================
+        private static void ApplyDynamic(GameObject sourceObject, XmlUtility xmlUtility, XmlElement parentXmlElement)
+        {
+            XmlElement propertiesElement = xmlUtility.GetOrCreateElement(parentXmlElement, "Properties");
+
+            if (propertiesElement == null || sourceObject == null)
+                return;
+
+            foreach (XmlNode node in propertiesElement.ChildNodes)
+            {
+                if (node is not XmlElement dynamicElement || dynamicElement.Name != "Dynamic")
+                    continue;
+
+                foreach (XmlNode child in dynamicElement.ChildNodes)
+                {
+                    if (child is XmlElement transformationElement && transformationElement.Name == "Transformation")
+                        DynamicTransform.WriteToScene(transformationElement, sourceObject);
+                }
+            }
+        }
+
+        // ================= NAME ================= //
 
         private static void WriteName(GameObject sourceObject, XmlUtility xmlUtility, XmlElement objectXmlElement)
         {

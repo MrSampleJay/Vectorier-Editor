@@ -74,6 +74,8 @@ namespace Vectorier.Element
             else
                 trigger.contentXml = string.Empty;
 
+            Element.ApplyDynamic(propertiesElement, triggerObject);
+
             // Set Tag
             triggerObject.tag = "Trigger";
             renderer.sortingLayerName = "OnTop";

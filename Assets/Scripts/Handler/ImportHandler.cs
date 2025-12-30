@@ -84,7 +84,7 @@ namespace Vectorier.Handler
             GameObject root = new GameObject(xmlFileName);
 
             // Import everything under the main section
-            ImportObjects(mainSection, root.transform, isLevelFile, allowedNames, includeBuildingsMarker);
+            ImportObjects(mainSection, root.transform, isLevelFile, allowedNames, includeBuildingsMarker, xml);
 
             if (untagChildren)
                 RemoveTags(root);
@@ -223,7 +223,7 @@ namespace Vectorier.Handler
 
         // ================= MAIN IMPORT LOOP ================= //
 
-        private static void ImportObjects(XmlElement mainSection, Transform parent, bool isLevelFile, HashSet<string> allowedNames, bool includeBuildingsMarker)
+        private static void ImportObjects(XmlElement mainSection, Transform parent, bool isLevelFile, HashSet<string> allowedNames, bool includeBuildingsMarker, XmlUtility xmlUtility)
         {
             foreach (XmlNode node in mainSection.ChildNodes)
             {
@@ -239,15 +239,15 @@ namespace Vectorier.Handler
                 }
 
                 if (isLevelFile)
-                    ImportLevelLayer(element, parent, includeBuildingsMarker);
+                    ImportLevelLayer(element, parent, includeBuildingsMarker, xmlUtility);
                 else
-                    ImportSingleObject(element, parent, includeBuildingsMarker);
+                    ImportSingleObject(element, parent, includeBuildingsMarker, xmlUtility);
             }
         }
 
         // ================= LEVEL LAYER IMPORT ================= //
 
-        private static void ImportLevelLayer(XmlElement layerElement, Transform parent, bool includeBuildingsMarker)
+        private static void ImportLevelLayer(XmlElement layerElement, Transform parent, bool includeBuildingsMarker, XmlUtility xmlUtility)
         {
             string factor = layerElement.GetAttribute("Factor");
 
@@ -264,16 +264,16 @@ namespace Vectorier.Handler
                 if (child == null)
                     continue;
 
-                WriteByTag(child, layerObject.transform, factor, includeBuildingsMarker);
+                WriteByTag(child, layerObject.transform, factor, includeBuildingsMarker, xmlUtility);
             }
         }
 
         // ================= OBJECT FILE IMPORT ================= //
-        private static void ImportSingleObject(XmlElement element, Transform parent, bool includeBuildingsMarker)
+        private static void ImportSingleObject(XmlElement element, Transform parent, bool includeBuildingsMarker, XmlUtility xmlUtility)
         {
             XmlElement finalElement = GetFinalObjectElement(element);
 
-            GameObject created = ObjectElement.WriteToScene(finalElement, parent, "1", includeBuildingsMarker);
+            GameObject created = ObjectElement.WriteToScene(finalElement, parent, "1", includeBuildingsMarker, xmlUtility);
             created.tag = "Object";
         }
 
@@ -319,7 +319,7 @@ namespace Vectorier.Handler
         }
 
         // ================= TAG ================= //
-        public static void WriteByTag(XmlElement xmlElement, Transform parent, string factor, bool includeBuildingsMarker)
+        public static void WriteByTag(XmlElement xmlElement, Transform parent, string factor, bool includeBuildingsMarker, XmlUtility xmlUtility)
         {
             string tagNameLower = xmlElement.Name.ToLower();
 
@@ -330,7 +330,7 @@ namespace Vectorier.Handler
             {
                 case "Object":
                     XmlElement finalElement = GetFinalObjectElement(xmlElement);
-                    GameObject objectInstance = ObjectElement.WriteToScene(finalElement, parent, factor, includeBuildingsMarker);
+                    GameObject objectInstance = ObjectElement.WriteToScene(finalElement, parent, factor, includeBuildingsMarker, xmlUtility);
                     objectInstance.tag = "Object";
                     break;
 

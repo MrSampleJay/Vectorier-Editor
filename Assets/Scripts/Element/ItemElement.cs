@@ -78,6 +78,7 @@ namespace Vectorier.Element
                 itemComponent.GroupId = gid;
 
             Element.ApplySelectionComponent(staticElement, itemObject);
+            Element.ApplyDynamic(propertiesElement, itemObject);
 
             // Sprite
             SpriteRenderer renderer = itemObject.AddComponent<SpriteRenderer>();

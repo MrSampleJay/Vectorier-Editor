@@ -46,6 +46,7 @@ namespace Vectorier.Element
             // Selection
             Element.WriteSelectionComponent(xmlUtility, staticElement, gameObject);
 
+
             return animationElement;
         }
 
@@ -95,6 +96,7 @@ namespace Vectorier.Element
             Element.ApplyPosition(animationObject, element);
             Element.ApplyLayer(animationObject, factor);
             Element.ApplySelectionComponent(staticElement, animationObject);
+            Element.ApplyDynamic(propertiesElement, animationObject);
 
             // Component
             var animationComponent = animationObject.AddComponent<AnimationComponent>();

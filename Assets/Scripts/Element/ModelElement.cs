@@ -47,6 +47,10 @@ namespace Vectorier.Element
             if (element == null)
                 return null;
 
+            // Properties
+            XmlElement propertiesElement = element.SelectSingleNode("Properties") as XmlElement;
+            XmlElement staticElement = propertiesElement?.SelectSingleNode("Static") as XmlElement;
+
             string className = element.GetAttribute("ClassName");
             string typeStr = element.GetAttribute("Type");
             string lifetimeStr = element.GetAttribute("LifeTime");
@@ -79,6 +83,9 @@ namespace Vectorier.Element
 
             if (int.TryParse(lifetimeStr, out int lifetime))
                 modelComponent.LifeTime = lifetime;
+
+            Element.ApplySelectionComponent(staticElement, modelObject);
+            Element.ApplyDynamic(propertiesElement, modelObject);
 
             // Tag
             modelObject.tag = "Model";

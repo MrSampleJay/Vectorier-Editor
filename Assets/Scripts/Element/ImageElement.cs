@@ -156,6 +156,7 @@ namespace Vectorier.Element
             Element.ApplyColor(staticElement, imageObject);
             Element.ApplySelectionComponent(staticElement, imageObject);
             (float finalX, float finalY) = Element.ApplyMatrix(staticElement, imageObject, renderer, positionX, positionY, xmlWidth, xmlHeight, nativeX, nativeY);
+            Element.ApplyDynamic(propertiesElement, imageObject);
 
             imageObject.transform.SetParent(parent, false);
             imageObject.transform.localPosition = new Vector3(finalX, finalY, 0f);

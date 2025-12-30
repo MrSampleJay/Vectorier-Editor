@@ -64,6 +64,8 @@ namespace Vectorier.Element
             string animation = element.GetAttribute("Animation");
             spawn.Animation = string.IsNullOrWhiteSpace(animation) ? "JumpOff|18" : animation;
 
+            Element.ApplyDynamic(propertiesElement, spawnObject);
+
             // Set Tag
             spawnObject.tag = "Spawn";
 

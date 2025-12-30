@@ -52,6 +52,7 @@ namespace Vectorier.Element
             Element.ApplyLayer(platformObject, factor);
             Element.ApplySize(platformObject, spriteRenderer.sprite, element);
             Element.ApplySelectionComponent(staticElement, platformObject);
+            Element.ApplyDynamic(propertiesElement, platformObject);
 
             // Set Tag
             platformObject.tag = "Platform";

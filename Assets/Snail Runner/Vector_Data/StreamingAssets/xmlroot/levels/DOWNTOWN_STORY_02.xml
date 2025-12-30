@@ -628,6 +628,19 @@
                       </Content>
                     </Trigger>
                   </Content>
+                  <Properties>
+                    <Dynamic>
+                      <Transformation Name="Transform_idp553401088">
+                        <Move>
+                          <MoveInterval Number="1" FramesToMove="70" Delay="0.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="-245" Y="0" />
+                            <Point Name="Finish" X="-490" Y="0" />
+                          </MoveInterval>
+                        </Move>
+                      </Transformation>
+                    </Dynamic>
+                  </Properties>
                 </Object>
                 <Object Name="Object" X="0" Y="0">
                   <Content>
@@ -657,6 +670,19 @@
                       </Content>
                     </Trigger>
                   </Content>
+                  <Properties>
+                    <Dynamic>
+                      <Transformation Name="Transform_idp553415680">
+                        <Move>
+                          <MoveInterval Number="1" FramesToMove="70" Delay="0.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="0" Y="105" />
+                            <Point Name="Finish" X="0" Y="210" />
+                          </MoveInterval>
+                        </Move>
+                      </Transformation>
+                    </Dynamic>
+                  </Properties>
                 </Object>
                 <Object Name="Object" X="0" Y="0">
                   <Content>
@@ -685,6 +711,19 @@
                       </Content>
                     </Trigger>
                   </Content>
+                  <Properties>
+                    <Dynamic>
+                      <Transformation Name="Transform_idp553428224">
+                        <Move>
+                          <MoveInterval Number="1" FramesToMove="70" Delay="0.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="245" Y="0" />
+                            <Point Name="Finish" X="490" Y="0" />
+                          </MoveInterval>
+                        </Move>
+                      </Transformation>
+                    </Dynamic>
+                  </Properties>
                 </Object>
               </Content>
             </Object>
@@ -2998,6 +3037,24 @@
                       </Content>
                     </Trigger>
                   </Content>
+                  <Properties>
+                    <Dynamic>
+                      <Transformation Name="Transform_idp554873856">
+                        <Move>
+                          <MoveInterval Number="1" FramesToMove="30" Delay="30.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="30" Y="0" />
+                            <Point Name="Finish" X="60" Y="0" />
+                          </MoveInterval>
+                          <MoveInterval Number="2" FramesToMove="50" Delay="0.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="0" Y="50" />
+                            <Point Name="Finish" X="0" Y="100" />
+                          </MoveInterval>
+                        </Move>
+                      </Transformation>
+                    </Dynamic>
+                  </Properties>
                 </Object>
                 <Object Name="Object" X="0" Y="0">
                   <Content>
@@ -3023,6 +3080,19 @@
                       </Content>
                     </Trigger>
                   </Content>
+                  <Properties>
+                    <Dynamic>
+                      <Transformation Name="Transform_idp554880256">
+                        <Move>
+                          <MoveInterval Number="1" FramesToMove="30" Delay="110.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="0" Y="-75" />
+                            <Point Name="Finish" X="0" Y="-150" />
+                          </MoveInterval>
+                        </Move>
+                      </Transformation>
+                    </Dynamic>
+                  </Properties>
                 </Object>
                 <Object Name="Object" X="0" Y="0">
                   <Content>
@@ -3053,6 +3123,24 @@
                       </Content>
                     </Trigger>
                   </Content>
+                  <Properties>
+                    <Dynamic>
+                      <Transformation Name="Transform_idp554884608">
+                        <Move>
+                          <MoveInterval Number="1" FramesToMove="80" Delay="30.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="-40" Y="40" />
+                            <Point Name="Finish" X="-80" Y="80" />
+                          </MoveInterval>
+                          <MoveInterval Number="2" FramesToMove="500" Delay="0.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="0" Y="0" />
+                            <Point Name="Finish" X="15000" Y="0" />
+                          </MoveInterval>
+                        </Move>
+                      </Transformation>
+                    </Dynamic>
+                  </Properties>
                 </Object>
                 <Object Name="Object" X="0" Y="0">
                   <Content>
@@ -3117,6 +3205,19 @@
                       </Content>
                     </Trigger>
                   </Content>
+                  <Properties>
+                    <Dynamic>
+                      <Transformation Name="Transform_idp554921728">
+                        <Move>
+                          <MoveInterval Number="1" FramesToMove="500" Delay="110.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="0" Y="0" />
+                            <Point Name="Finish" X="15000" Y="0" />
+                          </MoveInterval>
+                        </Move>
+                      </Transformation>
+                    </Dynamic>
+                  </Properties>
                 </Object>
                 <Object Name="Object" X="0" Y="0">
                   <Content>
@@ -3141,6 +3242,24 @@
                       </Content>
                     </Trigger>
                   </Content>
+                  <Properties>
+                    <Dynamic>
+                      <Transformation Name="Transform_idp554926080">
+                        <Move>
+                          <MoveInterval Number="1" FramesToMove="30" Delay="30.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="-30" Y="0" />
+                            <Point Name="Finish" X="-60" Y="0" />
+                          </MoveInterval>
+                          <MoveInterval Number="2" FramesToMove="50" Delay="0.0">
+                            <Point Name="Start" X="0" Y="0" />
+                            <Point Name="Support" Number="1" X="0" Y="50" />
+                            <Point Name="Finish" X="0" Y="100" />
+                          </MoveInterval>
+                        </Move>
+                      </Transformation>
+                    </Dynamic>
+                  </Properties>
                 </Object>
               </Content>
             </Object>

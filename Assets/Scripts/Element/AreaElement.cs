@@ -62,7 +62,7 @@ namespace Vectorier.Element
                 }
             }
 
-            // Selection Component
+            // Selection
             Element.WriteSelectionComponent(xmlUtility, staticElement, gameObject);
 
             return areaElement;
@@ -72,6 +72,10 @@ namespace Vectorier.Element
         {
             if (element == null)
                 return null;
+
+            // Properties
+            XmlElement propertiesElement = element.SelectSingleNode("Properties") as XmlElement;
+            XmlElement staticElement = propertiesElement?.SelectSingleNode("Static") as XmlElement;
 
             // Create object
             GameObject areaObject = Element.CreateObject("Area", parent, element);
@@ -85,7 +89,9 @@ namespace Vectorier.Element
             Element.ApplyPosition(areaObject, element);
             Element.ApplySize(areaObject, spriteRenderer.sprite, element);
             Element.ApplyLayer(areaObject, factor);
-            
+            Element.ApplySelectionComponent(staticElement, areaObject);
+            Element.ApplyDynamic(propertiesElement, areaObject);
+
             // Read Type
             string typeStr = element.GetAttribute("Type");
 

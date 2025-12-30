@@ -31,7 +31,7 @@
   },
   "GameStats": {},
   "ShopData": {
-    "Items": "[{\"id\":\"TRICK_JUMPTUMBLE\",\"count\":153,\"isEquip\":true},{\"id\":\"TRICK_SPINNINGVAULT\",\"count\":153,\"isEquip\":true}]"
+    "Items": "[{\"id\":\"TRICK_JUMPTUMBLE\",\"count\":156,\"isEquip\":true},{\"id\":\"TRICK_SPINNINGVAULT\",\"count\":156,\"isEquip\":true}]"
   },
   "OldData": {}
 }

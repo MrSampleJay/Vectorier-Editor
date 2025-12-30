@@ -425,5 +425,23 @@ namespace Vectorier.Element
 
             return (x, y);
         }
+
+        public static void ApplyDynamic(XmlElement propertiesElement, GameObject gameObject)
+        {
+            if (propertiesElement == null || gameObject == null)
+                return;
+
+            foreach (XmlNode node in propertiesElement.ChildNodes)
+            {
+                if (node is not XmlElement dynamicElement || dynamicElement.Name != "Dynamic")
+                    continue;
+
+                foreach (XmlNode child in dynamicElement.ChildNodes)
+                {
+                    if (child is XmlElement transformationElement && transformationElement.Name == "Transformation")
+                        DynamicTransform.WriteToScene(transformationElement, gameObject);
+                }
+            }
+        }
     }
 }

@@ -83,6 +83,10 @@ namespace Vectorier.Element
             if (element == null)
                 return null;
 
+            // Properties
+            XmlElement propertiesElement = element.SelectSingleNode("Properties") as XmlElement;
+            XmlElement staticElement = propertiesElement?.SelectSingleNode("Static") as XmlElement;
+
             float xmlWidth = float.Parse(element.GetAttribute("Width"), CultureInfo.InvariantCulture);
             float xmlHeight = float.Parse(element.GetAttribute("Height"), CultureInfo.InvariantCulture);
             float xmlHeight1 = float.Parse(element.GetAttribute("Height1"), CultureInfo.InvariantCulture);
@@ -131,6 +135,8 @@ namespace Vectorier.Element
 
                 trapezoidObject.transform.localScale = new Vector3(scaleX, scaleY, 1f);
             }
+
+            Element.ApplyDynamic(propertiesElement, trapezoidObject);
 
             // Tag
             trapezoidObject.tag = "Trapezoid";

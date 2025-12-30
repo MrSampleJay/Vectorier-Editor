@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Xml;
 using UnityEngine;
-using Vectorier.Element;
 using Vectorier.XML;
 
 namespace Vectorier.Dynamic
@@ -62,7 +61,7 @@ namespace Vectorier.Dynamic
 
             XmlElement dynamicElement = xmlUtility.GetOrCreateElement(parentElement, "Dynamic");
             XmlElement transformElement = xmlUtility.AddElement(dynamicElement, "Transformation");
-            xmlUtility.SetAttribute(transformElement, "Name", name);
+            xmlUtility.SetAttribute(transformElement, "Name", transformationName);
 
             // -------- MOVE --------
             XmlElement moveElement = xmlUtility.AddElement(transformElement, "Move");
@@ -126,6 +125,91 @@ namespace Vectorier.Dynamic
             }
 
             return dynamicElement;
+        }
+
+        public static DynamicTransform WriteToScene(XmlElement transformationElement, GameObject gameObject)
+        {
+            if (transformationElement == null || gameObject == null)
+                return null;
+
+            DynamicTransform dynamic = gameObject.AddComponent<DynamicTransform>();
+
+            dynamic.transformationName = transformationElement.GetAttribute("Name");
+            dynamic.moves.Clear();
+            dynamic.sizes.Clear();
+            dynamic.rotations.Clear();
+            dynamic.colors.Clear();
+
+            // -------- MOVE --------
+            XmlElement moveElement = transformationElement["Move"];
+
+            if (moveElement != null)
+            {
+                foreach (XmlElement intervalElement in moveElement.GetElementsByTagName("MoveInterval"))
+                {
+                    MoveData move = new MoveData();
+
+                    int frames = int.Parse(intervalElement.GetAttribute("FramesToMove"));
+                    move.duration = frames / 60f;
+
+                    move.delay = float.Parse(intervalElement.GetAttribute("Delay"), CultureInfo.InvariantCulture);
+
+                    foreach (XmlElement point in intervalElement.GetElementsByTagName("Point"))
+                    {
+                        string name = point.GetAttribute("Name");
+
+                        float x = float.Parse(point.GetAttribute("X"), CultureInfo.InvariantCulture);
+                        float y = float.Parse(point.GetAttribute("Y"), CultureInfo.InvariantCulture);
+
+                        if (name == "Support")
+                            move.support = new Vector2(x, y);
+                        else if (name == "Finish")
+                            move.move = new Vector2(x, y);
+                    }
+
+                    dynamic.moves.Add(move);
+                }
+            }
+
+            // -------- SIZE --------
+            foreach (XmlElement sizeElement in transformationElement.GetElementsByTagName("Size"))
+            {
+                SizeData size = new SizeData();
+
+                size.duration = Mathf.RoundToInt(float.Parse(sizeElement.GetAttribute("Frames")) / 60f);
+                size.finalWidth = float.Parse(sizeElement.GetAttribute("FinalWidth"), CultureInfo.InvariantCulture);
+                size.finalHeight = float.Parse(sizeElement.GetAttribute("FinalHeight"), CultureInfo.InvariantCulture);
+
+                dynamic.sizes.Add(size);
+            }
+
+            // -------- ROTATION --------
+            foreach (XmlElement rotationElement in transformationElement.GetElementsByTagName("Rotation"))
+            {
+                RotateData rotation = new RotateData();
+
+                rotation.angle = float.Parse(rotationElement.GetAttribute("Angle"), CultureInfo.InvariantCulture);
+                string[] anchor = rotationElement.GetAttribute("Anchor").Split('|');
+                rotation.anchor = new Vector2(float.Parse(anchor[0], CultureInfo.InvariantCulture), float.Parse(anchor[1], CultureInfo.InvariantCulture));
+                rotation.duration = Mathf.RoundToInt(float.Parse(rotationElement.GetAttribute("Frames")) / 60f);
+
+                dynamic.rotations.Add(rotation);
+            }
+
+            // -------- COLOR --------
+            foreach (XmlElement colorElement in transformationElement.GetElementsByTagName("Color"))
+            {
+                ColorData color = new ColorData();
+
+                ColorUtility.TryParseHtmlString(colorElement.GetAttribute("ColorStart"), out color.colorStart);
+                ColorUtility.TryParseHtmlString(colorElement.GetAttribute("ColorFinish"), out color.colorFinish);
+
+                color.duration = Mathf.RoundToInt(float.Parse(colorElement.GetAttribute("Frames")) / 60f);
+
+                dynamic.colors.Add(color);
+            }
+
+            return dynamic;
         }
     }
 }
