@@ -7,6 +7,8 @@ namespace Vectorier.Core
 {
     public class SnailRunner : EditorWindow
     {
+        // ================= OPTIONS ================= //
+
         private string levelName = "";
         private bool noUI = false;
         private bool hunterMode = false;
@@ -15,7 +17,9 @@ namespace Vectorier.Core
         private bool showAreas = false;
         private bool showDetectors = false;
 
-        [MenuItem("Vectorier/Play Level")]
+        // ================= MAIN ================= //
+
+        [MenuItem("Vectorier/Play Level", false, 2)]
         public static void ShowWindow()
         {
             GetWindow<SnailRunner>("Play Level");
@@ -105,7 +109,7 @@ namespace Vectorier.Core
             try
             {
                 Process.Start(startInfo);
-                UnityEngine.Debug.Log("Starting Snail Runner...");
+                UnityEngine.Debug.Log("[SnailRunner] Starting Snail Runner...");
             }
             catch (System.Exception ex)
             {

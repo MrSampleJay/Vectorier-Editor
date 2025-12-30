@@ -1,7 +1,7 @@
-using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using Vectorier.EditorScript;
 using Vectorier.Handler;
 
 namespace Vectorier.Core
@@ -11,7 +11,7 @@ namespace Vectorier.Core
         private ImportConfig config;
         private Vector2 mainScroll;
 
-        [MenuItem("Vectorier/Import")]
+        [MenuItem("Vectorier/Import", false, 1)]
         public static void ShowWindow()
         {
             GetWindow<Import>("Import");
@@ -44,7 +44,7 @@ namespace Vectorier.Core
             if (GUILayout.Button("Import", GUILayout.Height(50)))
             {
                 SaveConfig();
-                ImportHandler.Import(config.filePathDirectory, config.xmlName, config.textureFolders, config.untagChildren);
+                ImportHandler.Import(config.filePathDirectory, config.xmlName, config.textureFolders, config.untagChildren, config.selectedObject, config.includeBuildingsMarker, config.ignoreTags, config.applyConfig);
             }
 
             EditorGUILayout.EndScrollView();
@@ -79,9 +79,19 @@ namespace Vectorier.Core
         {
             config.filePathDirectory = EditorGUILayout.TextField("File Path Directory", config.filePathDirectory);
             config.xmlName = EditorGUILayout.TextField("XML Name", config.xmlName);
-            config.xmlName = EditorGUILayout.TextField("Selected Objects", config.xmlName);
+            config.selectedObject = EditorGUILayout.TextField("Selected Objects", config.selectedObject);
+            config.ignoreTags = EditorGUILayout.TextField("Ignore Tags", config.ignoreTags);
+
+
+            if (GUILayout.Button("Open Object List", GUILayout.Height(25)))
+            {
+                ObjectListWindow.Open(config);
+            }
+
             DrawTextureFoldersUI();
             config.untagChildren = EditorGUILayout.Toggle("Untag Object's Children", config.untagChildren);
+            config.includeBuildingsMarker = EditorGUILayout.Toggle("Include Buildings Marker", config.includeBuildingsMarker);
+            config.applyConfig = EditorGUILayout.Toggle("Apply Config", config.applyConfig);
         }
 
         private void DrawTextureFoldersUI()

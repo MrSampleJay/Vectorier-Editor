@@ -164,18 +164,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   exportType: 0
-  filePathDirectory: C:\Program Files (x86)\Steam\steamapps\common\Vectorier\Vectorier-Editor\Assets\XML\level_xml
+  filePathDirectory: C:\Program Files (x86)\Steam\steamapps\common\Vectorier\Vectorier-Editor\Assets\Snail
+    Runner\Vector_Data\StreamingAssets\xmlroot\levels
   fileName: DOWNTOWN_STORY_02
   fastBuild: 1
   exportAsXML: 1
-  citySets: []
+  citySets:
+  - buildings.xml
+  - buildings_downtown.xml
   groundSets: []
   librarySets: []
-  musicName: 
+  musicName: music_dinamic
   musicVolume: 0.3
-  commonModeModels: 
-  hunterModeModels: 
-  coinValue: 40
+  commonModeModels: <Model Name="Player" Type="1" Color="0" BirthSpawn="DefaultSpawn"
+    AI="0" Time="0" Respawns="Hunter" ForceBlasts="Hunter" Trick="1" Item="1" Victory="1"
+    Lose="1" /><Model Name="Hunter" Type="0" Color="0" BirthSpawn="DefaultSpawn"
+    AI="1" Time="1.7" AllowedSpawns="Respawn" Skins="hunter" Murders="Player" Arrests="Player"
+    Icon="1" />
+  hunterModeModels: <Model Name="Player" Type="0" Color="0" BirthSpawn="DefaultSpawn"
+    AI="5" Time="0" Victory="1" Respawns="Hunter" /><Model Name="Hunter" Type="1"
+    Color="0" BirthSpawn="DefaultSpawn" AI="0" Time="1.5" Trick="1" Skins="hunter"
+    Murders="Player" Arrests="Player" Lose="1" AllowedSpawns="Despawn" />
+  coinValue: 30
 --- !u!4 &483481050
 Transform:
   m_ObjectHideFlags: 1

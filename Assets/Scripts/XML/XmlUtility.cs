@@ -14,7 +14,9 @@ namespace Vectorier.XML
             xmlDocument = new XmlDocument();
         }
 
-        // Create a new XML document with a <root> node
+        // ================= XML UTILITIES ================= //
+
+        // -------- Create a new XML document with a <root> node -------- //
         public void Create(string rootName)
         {
             xmlDocument = new XmlDocument();
@@ -26,7 +28,7 @@ namespace Vectorier.XML
             xmlDocument.AppendChild(RootElement);
         }
 
-        // Load an existing XML file
+        // -------- Load an existing XML file -------- //
         public void Load(string filePath)
         {
             if (!File.Exists(filePath))
@@ -36,7 +38,7 @@ namespace Vectorier.XML
             RootElement = xmlDocument.DocumentElement;
         }
 
-        // Save the XML document to a file
+        // -------- Save the XML document to a file -------- //
         public void Save(string filePath)
         {
             XmlWriterSettings settings = new XmlWriterSettings
@@ -53,7 +55,7 @@ namespace Vectorier.XML
             }
         }
 
-        // Add a new element under a parent element
+        // -------- Add a new element under a parent element -------- //
         public XmlElement AddElement(XmlElement parent, string elementName)
 		{
 			XmlElement newElement = xmlDocument.CreateElement(elementName);
@@ -61,13 +63,13 @@ namespace Vectorier.XML
 			return newElement;
 		}
 
-        // Remove an element from its parent
+        // -------- Remove an element from its parent -------- //
         public void RemoveElement(XmlElement element)
         {
             element.ParentNode?.RemoveChild(element);
         }
 
-        // Set an attribute on an element
+        // -------- Set an attribute on an element -------- //
         public void SetAttribute(XmlElement element, string attributeName, object value)
         {
             if (value == null)
@@ -76,7 +78,7 @@ namespace Vectorier.XML
             element.SetAttribute(attributeName, value.ToString());
         }
 
-        // Get Element if it exists, and create a new one if there isn't
+        // -------- Get Element if it exists, and create a new one if there isn't -------- //
         public XmlElement GetOrCreateElement(XmlElement parent, string name)
         {
             if (parent == null || string.IsNullOrEmpty(name))
@@ -93,26 +95,26 @@ namespace Vectorier.XML
             return AddElement(parent, name);
         }
 
-        // Removes empty elements recursively
+        // -------- Removes empty elements recursively -------- //
         public void RemoveEmptyElements(XmlElement parent)
         {
             var toRemove = new List<XmlElement>();
 
             foreach (XmlNode node in parent.ChildNodes)
             {
-                if (node is XmlElement elem)
+                if (node is XmlElement element)
                 {
-                    RemoveEmptyElements(elem); // recursive
-                    if (!elem.HasAttributes && elem.ChildNodes.Count == 0)
-                        toRemove.Add(elem);
+                    RemoveEmptyElements(element); // recursive
+                    if (!element.HasAttributes && element.ChildNodes.Count == 0)
+                        toRemove.Add(element);
                 }
             }
 
-            foreach (var elem in toRemove)
-                parent.RemoveChild(elem);
+            foreach (var element in toRemove)
+                parent.RemoveChild(element);
         }
 
-        // Get an attribute as a string
+        // -------- Get an attribute as a string -------- //
         public string GetAttribute(XmlElement element, string attributeName, string defaultValue = "")
         {
             if (element.HasAttribute(attributeName))
@@ -121,17 +123,15 @@ namespace Vectorier.XML
             return defaultValue;
         }
 
-        // Return the internal XmlDocument
+        // -------- Return the internal XmlDocument -------- //
         public XmlDocument GetDocument()
         {
             return xmlDocument;
         }
 
-        // ============================================================
-        // FORMATTING UTILITIES
-        // ============================================================
+        // -------- FORMATTING UTILITIES ================= //
 
-        // Format and rewrite XML with indentation and self-closing empty tags
+        // -------- Format and rewrite XML with indentation and self-closing empty tags -------- //
         public static void FormatXML(string inputPath, string outputPath)
         {
             if (!File.Exists(inputPath))
@@ -156,18 +156,14 @@ namespace Vectorier.XML
                 foreach (XmlNode node in doc.ChildNodes)
                 {
                     if (node.NodeType == XmlNodeType.XmlDeclaration)
-                    {
                         writer.WriteProcessingInstruction("xml", "version=\"1.0\" encoding=\"utf-8\"");
-                    }
                     else
-                    {
                         WriteNodeCompact(node, writer);
-                    }
                 }
             }
         }
 
-        // Recursive node writer that collapses empty tags into self-closing
+        // -------- Recursive node writer that collapses empty tags into self-closing -------- //
         private static void WriteNodeCompact(XmlNode node, XmlWriter writer)
         {
             switch (node.NodeType)
@@ -188,12 +184,9 @@ namespace Vectorier.XML
                         bool hasNonEmptyChild = false;
                         foreach (XmlNode child in node.ChildNodes)
                         {
-                            if (child.NodeType != XmlNodeType.Text &&
-                                child.NodeType != XmlNodeType.CDATA &&
-                                child.NodeType != XmlNodeType.Comment)
-                            {
+                            if (child.NodeType != XmlNodeType.Text && child.NodeType != XmlNodeType.CDATA && child.NodeType != XmlNodeType.Comment)
                                 hasNonEmptyChild = true;
-                            }
+
                             WriteNodeCompact(child, writer);
                         }
 
@@ -203,26 +196,14 @@ namespace Vectorier.XML
                             writer.WriteEndElement();
                     }
                     else
-                    {
                         // No children -> self-closing
                         writer.WriteEndElement();
-                    }
                     break;
 
-                case XmlNodeType.Text:
-                    writer.WriteString(node.Value);
-                    break;
-
-                case XmlNodeType.CDATA:
-                    writer.WriteCData(node.Value);
-                    break;
-
-                case XmlNodeType.Comment:
-                    writer.WriteComment(node.Value);
-                    break;
-
-                default:
-                    break;
+                case XmlNodeType.Text: writer.WriteString(node.Value); break;
+                case XmlNodeType.CDATA: writer.WriteCData(node.Value); break;
+                case XmlNodeType.Comment: writer.WriteComment(node.Value); break;
+                default: break;
             }
         }
     }

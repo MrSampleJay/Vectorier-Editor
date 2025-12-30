@@ -21,10 +21,9 @@ namespace Vectorier.Core
 
         private const string CONFIG_OBJECT_NAME = "[EDITORONLY]ExportConfigHolder";
 
-        // -------------------------
-        // Menu
-        // -------------------------
-        [MenuItem("Vectorier/Export")]
+        // ================= MENU ================= //
+
+        [MenuItem("Vectorier/Export", false, 0)]
         public static void ShowWindow()
         {
             GetWindow<Export>("Export");
@@ -41,9 +40,8 @@ namespace Vectorier.Core
                 LoadOrCreateConfig();
         }
 
-        // -------------------------
-        // Config
-        // -------------------------
+        // ================= CONFIG ================= //
+
         private void LoadOrCreateConfig()
         {
             GameObject configObj = GameObject.Find(CONFIG_OBJECT_NAME);
@@ -64,9 +62,8 @@ namespace Vectorier.Core
             }
         }
 
-        // -------------------------
-        // UI
-        // -------------------------
+        // ================= UI ================= //
+
         private void OnGUI()
         {
             if (config == null)
@@ -118,12 +115,33 @@ namespace Vectorier.Core
                     BuildBuildings();
             }
 
+            if ((config.exportType == ExportConfig.ExportType.Objects || config.exportType == ExportConfig.ExportType.Buildings) && config.exportAsXML)
+            {
+                if (GUILayout.Button("Save to Existing", GUILayout.Height(40)))
+                {
+                    if (string.IsNullOrEmpty(config.filePathDirectory) || string.IsNullOrEmpty(config.fileName))
+                    {
+                        UnityEngine.Debug.LogWarning("[Export] Path or filename missing.");
+                        return;
+                    }
+
+                    string path = Path.Combine(config.filePathDirectory, $"{config.fileName}.xml");
+
+                    if (!File.Exists(path))
+                    {
+                        UnityEngine.Debug.LogError("[Export] Target XML does not exist.");
+                        return;
+                    }
+
+                    ExportHandler.ExportToExisting(config.exportType == ExportConfig.ExportType.Objects ? ExportHandler.ExportMode.Objects : ExportHandler.ExportMode.Buildings, path);
+                }
+            }
+
             EditorGUILayout.EndScrollView();
         }
 
-        // -------------------------
-        // UI Drawers
-        // -------------------------
+        // ================= UI DRAWERS ================= //
+
         private void DrawLevelConfigUI()
         {
             config.filePathDirectory = EditorGUILayout.TextField("File Path Directory", config.filePathDirectory);
@@ -209,9 +227,8 @@ namespace Vectorier.Core
                 setList.Add("");
         }
 
-        // -------------------------
-        // Build operations
-        // -------------------------
+        // ================= BUILD OPERATIONS ================= //
+
         private void BuildLevel() => BuildCommon("level-template.xml", "Level", ExportHandler.ExportMode.Level, "UnnamedLevel");
         private void BuildObjects() => BuildCommon("objects-template.xml", "Objects", ExportHandler.ExportMode.Objects, "UnnamedObjectSet");
         private void BuildBuildings() => BuildCommon("buildings-template.xml", "Buildings", ExportHandler.ExportMode.Buildings, "UnnamedBuildingsSet");
@@ -251,9 +268,8 @@ namespace Vectorier.Core
             CompileXML(templatePath);
         }
 
-        // -------------------------
-        // Helpers
-        // -------------------------
+        // ================= HELPERS ================= //
+
         private void EnsureDirectoryExists(string path)
         {
             if (!Directory.Exists(path))
@@ -294,7 +310,7 @@ namespace Vectorier.Core
 
         private void AddLevelConfigToXml(XmlUtility xmlUtility, XmlElement parentElement)
         {
-            // Music
+            // -------- MUSIC --------
             if (!string.IsNullOrEmpty(config.musicName))
             {
                 XmlElement musicElement = xmlUtility.AddElement(parentElement, "Music");
@@ -302,7 +318,7 @@ namespace Vectorier.Core
                 xmlUtility.SetAttribute(musicElement, "Volume", config.musicVolume);
             }
 
-            // Models
+            // -------- MODELS --------
             if (!string.IsNullOrEmpty(config.commonModeModels))
             {
                 XmlElement modelsCommon = xmlUtility.AddElement(parentElement, "Models");
@@ -318,7 +334,7 @@ namespace Vectorier.Core
                 modelsHunter.InnerXml = config.hunterModeModels;
             }
 
-            // Coins
+            // -------- COINS --------
             if (config.coinValue > 0)
             {
                 XmlElement coins = xmlUtility.AddElement(parentElement, "Coins");
@@ -379,31 +395,5 @@ namespace Vectorier.Core
 
             UnityEngine.Debug.Log($"[Export] Compilation finished in {stopwatch.ElapsedMilliseconds / 1000f:F2} seconds.");
         }
-    }
-
-    [DisallowMultipleComponent]
-    public class ExportConfig : MonoBehaviour
-    {
-        public enum ExportType { Level, Objects, Buildings }
-
-        public ExportType exportType = ExportType.Level;
-
-        // Common
-        public string filePathDirectory = "";
-        public string fileName = "";
-        public bool fastBuild = false;
-        public bool exportAsXML = false;
-
-        // Sets
-        public List<string> citySets = new List<string>();
-        public List<string> groundSets = new List<string>();
-        public List<string> librarySets = new List<string>();
-
-        // Level-only
-        public string musicName = "";
-        public float musicVolume = 0.3f;
-        public string commonModeModels = "";
-        public string hunterModeModels = "";
-        public int coinValue = 0;
     }
 }

@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Root>
   <Objects>
-    <Object Name="Test">
+    <Object Name="BackgroundImage">
       <Content>
-        <Image X="125.912" Y="-206.839" ClassName="tp_glass" Width="220" Height="430" NativeX="220" NativeY="430" />
+        <Image X="0" Y="0" ClassName="v_bg" Width="2121" Height="1116"/>
       </Content>
     </Object>
   </Objects>

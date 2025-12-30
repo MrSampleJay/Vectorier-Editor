@@ -2,7 +2,7 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
+  serializedVersion: 3
   tags:
   - //
   - Object
@@ -17,6 +17,7 @@ TagManager:
   - Item
   - Animation
   - Particle
+  - Comment
   layers:
   - Default
   - TransparentFX
@@ -25,9 +26,9 @@ TagManager:
   - Water
   - UI
   - 0.05
+  - 0.1
   - 0.5
   - 1
-  - 
   - 
   - 
   - 
@@ -54,3 +55,8 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: OnTop
+    uniqueID: 3391913905
+    locked: 0
+  m_RenderingLayers:
+  - Default
