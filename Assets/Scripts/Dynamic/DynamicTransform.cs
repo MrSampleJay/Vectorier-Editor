@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Xml;
+using UnityEditor;
 using UnityEngine;
 using Vectorier.XML;
 
@@ -20,12 +22,46 @@ namespace Vectorier.Dynamic
         [Serializable]
         public class MoveData
         {
-            public float duration;     // seconds
-            public float delay;        // seconds
+            public enum Easing
+            {
+                EaseOut,
+                EaseIn,
+                Linear
+            }
 
-            public Vector2 move;      // ordered pair
-            public Vector2 support;   // ordered pair
-            
+            public float duration;
+            public float delay;
+
+            public bool useEasing = true;
+            public Easing easeType;
+
+            public Vector2 finish = new();
+            public Vector2 support = new();
+
+            // Editor Only!
+            public bool isLocked;
+            public bool hide;
+
+            // Note: Use this function upon import to fix bugs from the editor if it ever happens
+            public void UpdatePoints()
+            {
+                Easing value = easeType;
+                if (!useEasing)
+                    return;
+                switch (value)
+                {
+                    case Easing.Linear:
+                        support = finish / 2;
+                        break;
+                    case Easing.EaseIn:
+                        support = Vector2.zero;
+                        break;
+                    case Easing.EaseOut:
+                        support = finish;
+                        break;
+                }
+
+            }
         }
 
         [Serializable]
@@ -50,6 +86,102 @@ namespace Vectorier.Dynamic
             public Color colorStart = Color.white;
             public Color colorFinish = Color.white;
             public int duration;
+        }
+
+        private void OnDrawGizmos()
+        {
+            if (moves == null || moves == null || moves.Count == 0)
+                return;
+
+            // Collect sprites (children, grandchildren, etc.)
+            List<SpriteRenderer> sprites = GetSpriteRenderers();
+
+            Vector3 accumulatedPosition = transform.position;
+            Gizmos.color = Color.yellow;
+
+            foreach (var interval in moves)
+            {
+                Vector3 start = accumulatedPosition;
+                Vector3 mid = accumulatedPosition + (Vector3)interval.support;
+                Vector3 end = accumulatedPosition + (Vector3)interval.finish;
+
+                DrawCubicBezier(start, mid, end);
+
+                DrawSpritesAtOffset(sprites, end);
+
+                DrawIntervalLabels(end, moves.IndexOf(interval));
+
+                accumulatedPosition += (Vector3)interval.finish;
+            }
+        }
+
+        public List<SpriteRenderer> GetSpriteRenderers()
+        {
+            // Tags that imply hierarchy
+            if (CompareTag("Object"))
+            {
+                // Includes children, grandchildren, etc.
+                return GetComponentsInChildren<SpriteRenderer>(true).ToList();
+            }
+
+            // Otherwise just this object
+            SpriteRenderer sr = GetComponent<SpriteRenderer>();
+            return sr != null ? new List<SpriteRenderer> { sr } : new List<SpriteRenderer>();
+        }
+
+        private void DrawCubicBezier(Vector3 start, Vector3 mid, Vector3 end)
+        {
+            // Convert quadratic-style tangents into cubic control points
+            Vector3 startTangent = 2f * (mid - start);
+            Vector3 endTangent = 2f * (end - mid);
+
+            Vector3 control1 = start + startTangent / 3f;
+            Vector3 control2 = end - endTangent / 3f;
+
+            const int resolution = 15;
+            Vector3 previousPoint = start;
+
+            for (int i = 1; i <= resolution; i++)
+            {
+                float t = i / (float)resolution;
+
+                Vector3 point =
+                    Mathf.Pow(1 - t, 3) * start +
+                    3 * Mathf.Pow(1 - t, 2) * t * control1 +
+                    3 * (1 - t) * t * t * control2 +
+                    Mathf.Pow(t, 3) * end;
+
+                Gizmos.DrawLine(previousPoint, point);
+                previousPoint = point;
+            }
+        }
+        private void DrawIntervalLabels(Vector3 position, int index)
+        {
+            position.y += 20;
+            Handles.Label(position, $"{transform.name} (Move Interval {index + 1})");
+        }
+        private void DrawSpritesAtOffset(List<SpriteRenderer> sprites, Vector3 offset)
+        {
+            foreach (var sprite in sprites)
+            {
+                if (sprite == null || sprite.sprite == null)
+                    continue;
+
+                Texture2D texture = sprite.sprite.texture;
+
+                Vector3 worldPos =
+                    sprite.transform.position +
+                    offset -
+                    transform.position;
+
+                Vector3 size = sprite.bounds.size;
+
+                int flipX = sprite.flipX ? -1 : 1;
+                int flipY = sprite.flipY ? -1 : 1;
+
+                Rect rect = new Rect(worldPos.x, worldPos.y, size.x * flipX, -size.y * flipY);
+                Gizmos.DrawGUITexture(rect, texture);
+            }
         }
 
         // ================= XML Writer ================= //
@@ -93,8 +225,8 @@ namespace Vectorier.Dynamic
                 // Finish
                 XmlElement finishElem = xmlUtility.AddElement(intervalElem, "Point");
                 xmlUtility.SetAttribute(finishElem, "Name", "Finish");
-                xmlUtility.SetAttribute(finishElem, "X", interval.move.x.ToString(CultureInfo.InvariantCulture));
-                xmlUtility.SetAttribute(finishElem, "Y", interval.move.y.ToString(CultureInfo.InvariantCulture));
+                xmlUtility.SetAttribute(finishElem, "X", interval.finish.x.ToString(CultureInfo.InvariantCulture));
+                xmlUtility.SetAttribute(finishElem, "Y", interval.finish.y.ToString(CultureInfo.InvariantCulture));
             }
 
             // -------- SIZE --------
@@ -164,7 +296,7 @@ namespace Vectorier.Dynamic
                         if (name == "Support")
                             move.support = new Vector2(x, y);
                         else if (name == "Finish")
-                            move.move = new Vector2(x, y);
+                            move.finish = new Vector2(x, y);
                     }
 
                     dynamic.moves.Add(move);
