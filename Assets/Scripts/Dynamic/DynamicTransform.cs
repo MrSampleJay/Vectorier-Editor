@@ -12,16 +12,40 @@ namespace Vectorier.Dynamic
     [AddComponentMenu("Vectorier/Dynamic/Transformation")]
     public class DynamicTransform : MonoBehaviour
     {
+        public enum TransformType
+        {
+            Move, Rotate, Size, Color, All
+        }
+
+        [SerializeField]
         public string transformationName;
 
+        [SerializeField]
         public List<MoveData> moves = new();
+
+        [SerializeField]
         public List<SizeData> sizes = new();
+
+        [SerializeField]
         public List<RotateData> rotations = new();
+
+        [SerializeField]
         public List<ColorData> colors = new();
+
+        [SerializeField]
+        public TransformType SelectedTransform = TransformType.Move;
+
+        [SerializeField]
+        public bool showPreview = false;
+
+        [SerializeField]
+        public List<string> allowedPreviewTags = new List<string> { "Platform", "Image"};
 
         [Serializable]
         public class MoveData
         {
+            // The reason for private variables and getters and setters is to see which bits of code uses them
+            // IntelliSense moment
             public enum Easing
             {
                 EaseOut,
@@ -29,38 +53,64 @@ namespace Vectorier.Dynamic
                 Linear
             }
 
-            public float duration;
-            public float delay;
+            float _delay;
+            float _duration;
+            bool _useEasing = false;
+            private Easing _easeType;
 
-            public bool useEasing = true;
-            public Easing easeType;
-
-            public Vector2 finish = new();
-            public Vector2 support = new();
+            public Vector2 Finish = new();
+            public Vector2 Support = new();
 
             // Editor Only!
             public bool isLocked;
             public bool hide;
+            public bool previewImage = true;
+
+            public float Duration
+            {
+                get => _duration;
+                set 
+                {
+                    if (value > 0)
+                        _duration = value;
+                }
+            }
+
+            public float Delay
+            {
+                get => _delay;
+                set
+                {
+                    if (value > 0)
+                        _delay = value;
+                }
+            }
+
+            public bool UseEasing
+            {
+                get => _useEasing;
+                set => _useEasing = value;
+            }
+            public Easing EaseType { get => _easeType; set => _easeType = value; }
 
             // Note: Use this function upon import to fix bugs from the editor if it ever happens
             public void UpdatePoints()
             {
-                Easing value = easeType;
-                if (!useEasing)
+                Easing value = EaseType;
+                if (!UseEasing)
                     return;
                 switch (value)
                 {
                     case Easing.Linear:
-                        support = finish / 2;
+                        Support = Finish / 2;
                         break;
                     case Easing.EaseIn:
-                        support = Vector2.zero;
+                        Support = Vector2.zero;
                         break;
                     case Easing.EaseOut:
-                        support = finish;
+                        Support = Finish;
                         break;
                 }
-
             }
         }
 
@@ -75,9 +125,38 @@ namespace Vectorier.Dynamic
         [Serializable]
         public class RotateData
         {
+            public enum AnchorType
+            {
+                Custom,
+                TopLeft,
+                TopRight,
+                Center,
+            }
+
+            public AnchorType anchorType = AnchorType.Custom;
+            public bool useAnchorType = false;
+
             public float angle;
             public Vector2 anchor;
             public int duration;
+
+            public bool hide;
+
+            public void UpdateAnchor(Bounds bounds, Vector2 offset)
+            {
+                switch (anchorType)
+                {
+                    case AnchorType.TopLeft:
+                        anchor = offset;
+                        break;
+                    case AnchorType.TopRight:
+                        anchor = new Vector2(bounds.extents.x * 2, offset.y);
+                        break;
+                    case AnchorType.Center:
+                        anchor = offset + (Vector2)bounds.center;
+                        break;
+                }
+            }
         }
 
         [Serializable]
@@ -90,28 +169,41 @@ namespace Vectorier.Dynamic
 
         private void OnDrawGizmos()
         {
-            if (moves == null || moves == null || moves.Count == 0)
+            if(!showPreview) return;
+
+            if (moves == null || moves == null || moves.Count == 0 || SelectedTransform != TransformType.Move)
                 return;
 
             // Collect sprites (children, grandchildren, etc.)
-            List<SpriteRenderer> sprites = GetSpriteRenderers();
+            List<SpriteRenderer> sprites = GetSpriteRenderers(allowedPreviewTags);
+            DynamicEditor.TryGetSpriteBounds(sprites, out Bounds spriteBounds);
 
-            Vector3 accumulatedPosition = transform.position;
+            Vector3 middle = new Vector3(spriteBounds.min.x, spriteBounds.max.y, 0) - spriteBounds.center;
+
+            Vector3 localOffset = Vector3.zero;
+            if (sprites.Count > 0)
+                localOffset = PreviewManager.CalculateOffsetFromParent(sprites, transform.position);
+
+            Vector3 accumulatedPosition = transform.position + localOffset;
             Gizmos.color = Color.yellow;
 
             foreach (var interval in moves)
             {
                 Vector3 start = accumulatedPosition;
-                Vector3 mid = accumulatedPosition + (Vector3)interval.support;
-                Vector3 end = accumulatedPosition + (Vector3)interval.finish;
+                Vector3 mid = accumulatedPosition + (Vector3)interval.Support;
+                Vector3 end = accumulatedPosition + (Vector3)interval.Finish;
 
                 DrawCubicBezier(start, mid, end);
-
-                DrawSpritesAtOffset(sprites, end);
-
+                if (interval.previewImage)
+                {
+                    if (EditorPrefs.GetBool("Vectorier_PreviewImagesInMoves", false))
+                        DrawSpritesAtOffset(sprites, end);
+                    else
+                        DrawSpriteBounds(spriteBounds, end, Vector2.zero);
+                }
                 DrawIntervalLabels(end, moves.IndexOf(interval));
 
-                accumulatedPosition += (Vector3)interval.finish;
+                accumulatedPosition += (Vector3)interval.Finish;
             }
         }
 
@@ -129,7 +221,16 @@ namespace Vectorier.Dynamic
             return sr != null ? new List<SpriteRenderer> { sr } : new List<SpriteRenderer>();
         }
 
-        private void DrawCubicBezier(Vector3 start, Vector3 mid, Vector3 end)
+        public List<SpriteRenderer> GetSpriteRenderers(IEnumerable<string> allowedTags)
+        {
+            var allowed = new HashSet<string>(allowedTags);
+
+            return GetComponentsInChildren<SpriteRenderer>(true)
+                .Where(sr => allowed.Contains(sr.gameObject.tag))
+                .ToList();
+        }
+
+        public void DrawCubicBezier(Vector3 start, Vector3 mid, Vector3 end)
         {
             // Convert quadratic-style tangents into cubic control points
             Vector3 startTangent = 2f * (mid - start);
@@ -155,12 +256,26 @@ namespace Vectorier.Dynamic
                 previousPoint = point;
             }
         }
-        private void DrawIntervalLabels(Vector3 position, int index)
+
+        private void DrawSpriteBounds(Bounds bounds,Vector3 position, Vector3 localOffset)
+        {
+
+            Vector3 tl = new Vector3(bounds.min.x, bounds.max.y, 0) - bounds.center + position - localOffset;
+            Vector3 tr = new Vector3(bounds.max.x, bounds.max.y, 0) - bounds.center + position - localOffset;
+            Vector3 bl = new Vector3(bounds.min.x, bounds.min.y, 0) - bounds.center + position - localOffset;
+            Vector3 br = new Vector3(bounds.max.x, bounds.min.y, 0) - bounds.center + position - localOffset;
+
+            Gizmos.DrawLine (tl, tr);
+            Gizmos.DrawLine (tr, br);
+            Gizmos.DrawLine (br, bl);
+            Gizmos.DrawLine (bl, tl);
+        }
+        public void DrawIntervalLabels(Vector3 position, int index)
         {
             position.y += 20;
             Handles.Label(position, $"{transform.name} (Move Interval {index + 1})");
         }
-        private void DrawSpritesAtOffset(List<SpriteRenderer> sprites, Vector3 offset)
+        public void DrawSpritesAtOffset(List<SpriteRenderer> sprites, Vector3 offset)
         {
             foreach (var sprite in sprites)
             {
@@ -170,9 +285,7 @@ namespace Vectorier.Dynamic
                 Texture2D texture = sprite.sprite.texture;
 
                 Vector3 worldPos =
-                    sprite.transform.position +
-                    offset -
-                    transform.position;
+                    sprite.transform.position + offset - transform.position;
 
                 Vector3 size = sprite.bounds.size;
 
@@ -202,12 +315,12 @@ namespace Vectorier.Dynamic
             {
                 var interval = moves[i];
 
-                int frames = Mathf.RoundToInt(interval.duration * 60f);
+                int frames = Mathf.RoundToInt(interval.Duration * 60f);
 
                 XmlElement intervalElem = xmlUtility.AddElement(moveElement, "MoveInterval");
                 xmlUtility.SetAttribute(intervalElem, "Number", i + 1);
                 xmlUtility.SetAttribute(intervalElem, "FramesToMove", frames);
-                xmlUtility.SetAttribute(intervalElem, "Delay", interval.delay.ToString("F1", CultureInfo.InvariantCulture));
+                xmlUtility.SetAttribute(intervalElem, "Delay", interval.Delay.ToString("F1", CultureInfo.InvariantCulture));
 
                 // Start (always 0,0)
                 XmlElement startElem = xmlUtility.AddElement(intervalElem, "Point");
@@ -219,14 +332,14 @@ namespace Vectorier.Dynamic
                 XmlElement supportElem = xmlUtility.AddElement(intervalElem, "Point");
                 xmlUtility.SetAttribute(supportElem, "Name", "Support");
                 xmlUtility.SetAttribute(supportElem, "Number", 1);
-                xmlUtility.SetAttribute(supportElem, "X", interval.support.x.ToString(CultureInfo.InvariantCulture));
-                xmlUtility.SetAttribute(supportElem, "Y", interval.support.y.ToString(CultureInfo.InvariantCulture));
+                xmlUtility.SetAttribute(supportElem, "X", interval.Support.x.ToString(CultureInfo.InvariantCulture));
+                xmlUtility.SetAttribute(supportElem, "Y", interval.Support.y.ToString(CultureInfo.InvariantCulture));
 
                 // Finish
                 XmlElement finishElem = xmlUtility.AddElement(intervalElem, "Point");
                 xmlUtility.SetAttribute(finishElem, "Name", "Finish");
-                xmlUtility.SetAttribute(finishElem, "X", interval.finish.x.ToString(CultureInfo.InvariantCulture));
-                xmlUtility.SetAttribute(finishElem, "Y", interval.finish.y.ToString(CultureInfo.InvariantCulture));
+                xmlUtility.SetAttribute(finishElem, "X", interval.Finish.x.ToString(CultureInfo.InvariantCulture));
+                xmlUtility.SetAttribute(finishElem, "Y", interval.Finish.y.ToString(CultureInfo.InvariantCulture));
             }
 
             // -------- SIZE --------
@@ -282,21 +395,21 @@ namespace Vectorier.Dynamic
                     MoveData move = new MoveData();
 
                     int frames = int.Parse(intervalElement.GetAttribute("FramesToMove"));
-                    move.duration = frames / 60f;
+                    move.Duration = frames / 60f;
 
-                    move.delay = float.Parse(intervalElement.GetAttribute("Delay"), CultureInfo.InvariantCulture);
+                    move.Delay = float.Parse(intervalElement.GetAttribute("Delay"), CultureInfo.InvariantCulture);
 
                     foreach (XmlElement point in intervalElement.GetElementsByTagName("Point"))
                     {
                         string name = point.GetAttribute("Name");
 
                         float x = float.Parse(point.GetAttribute("X"), CultureInfo.InvariantCulture);
-                        float y = float.Parse(point.GetAttribute("Y"), CultureInfo.InvariantCulture);
+                        float y = -float.Parse(point.GetAttribute("Y"), CultureInfo.InvariantCulture);
 
                         if (name == "Support")
-                            move.support = new Vector2(x, y);
+                            move.Support = new Vector2(x, y);
                         else if (name == "Finish")
-                            move.finish = new Vector2(x, y);
+                            move.Finish = new Vector2(x, y);
                     }
 
                     dynamic.moves.Add(move);

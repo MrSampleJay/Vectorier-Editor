@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEditor;
+using NUnit.Framework;
+using System.Collections.Generic;
+using static UnityEditor.EditorGUILayout;
 
 namespace Vectorier.Core.Preferences
 {
@@ -11,6 +14,8 @@ namespace Vectorier.Core.Preferences
         private const string KEY_SHOW_PLATFORM_OUTLINE = "Vectorier_ShowPlatformOutline";
         private const string KEY_SHOW_TRIGGER_TEXT = "Vectorier_ShowTriggerText";
         private const string KEY_SHOW_AREA_TEXT = "Vectorier_ShowAreaText";
+        private const string KEY_USE_MULTIPLE_TRANSFORM_TYPES = "Vectorier_UseMultipleTranasformTypes";
+        private const string PREVIEW_IMAGE_IN_MOVES = "Vectorier_PreviewImagesInMoves";
 
         // ================= CACHED VALUES ================= //
 
@@ -19,6 +24,8 @@ namespace Vectorier.Core.Preferences
         private bool showTriggerText;
         private bool showAreaText;
 
+        private bool useMultipleTransformTypes;
+        private bool previewImagesInMoves;
 
         // ================= MAIN ================= //
 
@@ -34,7 +41,6 @@ namespace Vectorier.Core.Preferences
         {
             LoadPrefs();
         }
-
         private void OnGUI()
         {
             var subHeaderStyle = new GUIStyle(EditorStyles.label)
@@ -43,16 +49,23 @@ namespace Vectorier.Core.Preferences
                 fontStyle = FontStyle.Bold
             };
 
-            EditorGUILayout.LabelField("Scene", subHeaderStyle);
-            EditorGUILayout.Space(3);
-
-            EditorGUILayout.LabelField("Trigger & Area", EditorStyles.boldLabel);
+            LabelField("Scene", subHeaderStyle);
+            Space(3);
+            
+            LabelField("Trigger & Area", EditorStyles.boldLabel);
 
             EditorGUI.BeginChangeCheck();
-            showOutline = EditorGUILayout.Toggle("Show Outline", showOutline);
-            showPlatformOutline = EditorGUILayout.Toggle("Show Platform Outline", showPlatformOutline);
-            showTriggerText = EditorGUILayout.Toggle("Show Trigger Text", showTriggerText);
-            showAreaText = EditorGUILayout.Toggle("Show Area Text", showAreaText);
+            showOutline = Toggle("Show Outline", showOutline);
+            showPlatformOutline = Toggle("Show Platform Outline", showPlatformOutline);
+            showTriggerText = Toggle("Show Trigger Text", showTriggerText);
+            showAreaText = Toggle("Show Area Text", showAreaText);
+
+            LabelField("Experimental", subHeaderStyle);
+            Space(3);
+
+            LabelField("Transformations", EditorStyles.boldLabel);
+            useMultipleTransformTypes = Toggle("Use Multiple Transforms", useMultipleTransformTypes);
+            previewImagesInMoves = Toggle("Use Preview Images in Moves", previewImagesInMoves);
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -66,6 +79,8 @@ namespace Vectorier.Core.Preferences
             showPlatformOutline = EditorPrefs.GetBool(KEY_SHOW_PLATFORM_OUTLINE, false);
             showTriggerText = EditorPrefs.GetBool(KEY_SHOW_TRIGGER_TEXT, true);
             showAreaText = EditorPrefs.GetBool(KEY_SHOW_AREA_TEXT, false);
+            useMultipleTransformTypes = EditorPrefs.GetBool(KEY_USE_MULTIPLE_TRANSFORM_TYPES, false);
+            previewImagesInMoves = EditorPrefs.GetBool(PREVIEW_IMAGE_IN_MOVES, false);
         }
 
         private void SavePrefs()
@@ -74,6 +89,8 @@ namespace Vectorier.Core.Preferences
             EditorPrefs.SetBool(KEY_SHOW_PLATFORM_OUTLINE, showPlatformOutline);
             EditorPrefs.SetBool(KEY_SHOW_TRIGGER_TEXT, showTriggerText);
             EditorPrefs.SetBool(KEY_SHOW_AREA_TEXT, showAreaText);
+            EditorPrefs.SetBool(KEY_USE_MULTIPLE_TRANSFORM_TYPES, useMultipleTransformTypes);
+            EditorPrefs.SetBool(PREVIEW_IMAGE_IN_MOVES, previewImagesInMoves);
         }
     }
 }
