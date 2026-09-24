@@ -1,3 +1,4 @@
+using UnityEditor.Build.Content;
 using UnityEngine;
 
 namespace Vectorier.Component
@@ -23,6 +24,11 @@ namespace Vectorier.Component
 
         [Tooltip("Time in second before the animated disappear.")]
         public float Time = 0f;
+
+        private void OnEnable()
+        {
+
+        }
     }
 }
 

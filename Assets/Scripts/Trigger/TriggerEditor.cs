@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Xml;
+using Unity.PlasticSCM.Editor.WebApi;
 using UnityEditor;
 using UnityEngine;
 using Vectorier.Component;
+using static UnityEditor.EditorGUILayout;
 
 namespace Vectorier.Trigger
 {
@@ -23,8 +25,31 @@ namespace Vectorier.Trigger
         string templateName = "";
 
         [Serializable] class Cond { public Ck k = Ck.Equal; public string a = "_Attribute", b = "Value"; public bool nott; } // Equal: a,b  | Greater/Less: a=Value, b=Than
-        [Serializable] class Attr { public string k = "Attribute", v = "Value"; }
-        [Serializable] class Act { public string n = "Action"; public List<Attr> at = new List<Attr>(); }
+        [Serializable] public class Attr { 
+            public string k = "Attribute", v = "Value";
+            public Attr(string name)
+            {
+                k = name;
+            }
+            public Attr() { }
+
+            public static implicit operator Attr(string name)
+            {
+                return new Attr(name);
+            }
+        }
+        [Serializable] public class Act {
+            public string n = "Action"; 
+            public List<Attr> at = new List<Attr>();
+        }
+
+        public Dictionary<string, List<Attr>> Actions = new()
+        {
+            {"Camera", new (){"Zoom", "Stop"} },
+            {"Wait", new (){"Frames"} },
+            {"Transformation", new() { "Name" } }
+        };
+
         [Serializable]
         class Loop
         {
@@ -37,7 +62,13 @@ namespace Vectorier.Trigger
             public List<Cond> c = new List<Cond>();
             public List<Act> a = new List<Act>();
             public string actTemplate = "";
+
+            // Editor Only Settings
             public bool fold = true;
+            public bool useTemplate;
+            public bool useCondTemplate = false;
+            public bool useActTemplate = false;
+            public bool useEvTemplate = false;
         }
 
         TriggerComponent tc;
@@ -102,6 +133,7 @@ namespace Vectorier.Trigger
                 RefreshPresetList();
 
             float oldLabelWidth = EditorGUIUtility.labelWidth;
+            float oldFieldWidth = EditorGUIUtility.fieldWidth;
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUIUtility.labelWidth = 70f;
 
@@ -190,6 +222,8 @@ namespace Vectorier.Trigger
                     string.IsNullOrEmpty(L.name) ? $"Loop {li}" : $"Loop: {L.name}",
                     true
                 );
+                
+                L.useTemplate = EditorGUILayout.Toggle(L.useTemplate, GUILayout.Width(20));
 
                 if (GUILayout.Button("-", GUILayout.Width(22)))
                 {
@@ -205,11 +239,14 @@ namespace Vectorier.Trigger
                 if (L.fold)
                 {
                     L.name = EditorGUILayout.TextField("Name (optional)", L.name);
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField("Loop Template", GUILayout.Width(90));
-                    L.loopTemplate = EditorGUILayout.TextField(L.loopTemplate ?? "");
-                    if (GUILayout.Button("X", GUILayout.Width(22))) L.loopTemplate = "";
-                    EditorGUILayout.EndHorizontal();
+                    if (L.useTemplate)
+                    {
+                        EditorGUILayout.BeginHorizontal();
+                        EditorGUILayout.LabelField("Loop Template", GUILayout.Width(90));
+                        L.loopTemplate = EditorGUILayout.TextField(L.loopTemplate ?? "");
+                        if (GUILayout.Button("X", GUILayout.Width(22))) L.loopTemplate = "";
+                        EditorGUILayout.EndHorizontal();
+                    }
 
                     var loopLocked = !string.IsNullOrEmpty(L.loopTemplate);
                     if (loopLocked)
@@ -232,19 +269,32 @@ namespace Vectorier.Trigger
                         }
                     }
 
-                    using (new EditorGUI.DisabledScope(loopLocked))
+                    if(!loopLocked)
                     {
                         // EVENTS
                         EditorGUILayout.Space(4);
-                        EditorGUILayout.LabelField("Events", EditorStyles.boldLabel);
-                        EditorGUILayout.BeginHorizontal();
-                        EditorGUILayout.LabelField("Template", GUILayout.Width(60));
-                        L.evTemplate = EditorGUILayout.TextField(L.evTemplate ?? "");
-                        if (GUILayout.Button("X", GUILayout.Width(22))) L.evTemplate = "";
-                        EditorGUILayout.EndHorizontal();
 
-                        var evLocked = !string.IsNullOrEmpty(L.evTemplate);
-                        using (new EditorGUI.DisabledScope(evLocked))
+                        // Header
+                        BeginHorizontal();
+                        DisplayTemplateHeader(L, "Events", ref L.useEvTemplate, true);
+                        if (!L.useEvTemplate)
+                            if (GUILayout.Button("+ Event")) L.ev.Add(Ev.Enter);
+                        EndHorizontal();
+
+                        // Template Box
+                        if (L.useEvTemplate)
+                        {
+                            EditorGUILayout.BeginHorizontal();
+                            EditorGUILayout.LabelField("Template", GUILayout.Width(60));
+                            L.evTemplate = EditorGUILayout.TextField(L.evTemplate ?? "");
+                            if (GUILayout.Button("X", GUILayout.Width(22))) L.evTemplate = "";
+                            EditorGUILayout.EndHorizontal();
+                        }
+
+                        var evLocked = L.useEvTemplate;
+
+                        // Event List
+                        if (!evLocked)
                         {
                             for (int ei = 0; ei < L.ev.Count; ei++)
                             {
@@ -253,21 +303,29 @@ namespace Vectorier.Trigger
                                 if (GUILayout.Button("-", GUILayout.Width(22))) { L.ev.RemoveAt(ei); ei--; }
                                 EditorGUILayout.EndHorizontal();
                             }
-                            if (GUILayout.Button("+ Event")) L.ev.Add(Ev.Enter);
                         }
                         if (evLocked && L.ev.Count > 0) L.ev.Clear();
 
                         // CONDITIONS
                         EditorGUILayout.Space(4);
-                        EditorGUILayout.LabelField("Conditions", EditorStyles.boldLabel);
-                        EditorGUILayout.BeginHorizontal();
-                        EditorGUILayout.LabelField("Template", GUILayout.Width(60));
-                        L.condTemplate = EditorGUILayout.TextField(L.condTemplate ?? "");
-                        if (GUILayout.Button("X", GUILayout.Width(22))) L.condTemplate = "";
-                        EditorGUILayout.EndHorizontal();
+                        BeginHorizontal();
+                        {
+                            DisplayTemplateHeader(L, "Conditions",ref L.useCondTemplate);
+                            if(!L.useCondTemplate)
+                            if (GUILayout.Button("+ Condition")) L.c.Add(new Cond());
+                        }
+                        EndHorizontal();
 
-                        var condLocked = !string.IsNullOrEmpty(L.condTemplate);
-                        using (new EditorGUI.DisabledScope(condLocked))
+                        if (L.useCondTemplate)
+                        {
+                            EditorGUILayout.BeginHorizontal();
+                            EditorGUILayout.LabelField("Template", GUILayout.Width(60));
+                            L.condTemplate = EditorGUILayout.TextField(L.condTemplate ?? "");
+                            if (GUILayout.Button("X", GUILayout.Width(22))) L.condTemplate = "";
+                            EditorGUILayout.EndHorizontal();
+                        }
+
+                        if (!L.useCondTemplate)
                         {
                             L.op = (Op)EditorGUILayout.EnumPopup("Operator", L.op);
                             for (int ci = 0; ci < L.c.Count; ci++)
@@ -281,9 +339,8 @@ namespace Vectorier.Trigger
                                 if (GUILayout.Button("-", GUILayout.Width(22))) { L.c.RemoveAt(ci); ci--; }
                                 EditorGUILayout.EndHorizontal();
                             }
-                            if (GUILayout.Button("+ Condition")) L.c.Add(new Cond());
                         }
-                        if (condLocked && (L.op != Op.None || L.c.Count > 0)) { L.op = Op.None; L.c.Clear(); }
+                        if (!L.useCondTemplate && (L.op != Op.None || L.c.Count > 0)) { L.op = Op.None; L.c.Clear(); }
 
                         // ACTIONS
                         EditorGUILayout.Space(4);
@@ -352,6 +409,29 @@ namespace Vectorier.Trigger
             EditorGUILayout.Space(6);
             EditorGUILayout.LabelField("XML Preview", EditorStyles.miniBoldLabel);
             EditorGUILayout.TextArea(ToXml(init, templateName, loops), GUILayout.MinHeight(120));
+        }
+
+        // ===== GUI =====
+
+        private void DisplayTemplateHeader(Loop loop, string Label, ref bool templateBool, bool bold = true)
+        {
+            Rect headerRect = GetControlRect();
+            Rect LabelRect = new Rect(headerRect.x, headerRect.y, 70f, headerRect.height);
+            Rect ToggleRect = new Rect(LabelRect.x + 70f, headerRect.y, 50f, headerRect.height);
+            if(bold)
+                EditorGUI.LabelField(LabelRect, Label, EditorStyles.boldLabel);
+            else
+                EditorGUI.LabelField(LabelRect, Label);
+            templateBool = EditorGUI.Toggle(ToggleRect, templateBool);
+        }
+
+        private void DisplayTemplateHeader(Loop loop)
+        {
+            Rect headerRect = GetControlRect();
+            Rect LabelRect = new Rect(headerRect.x, headerRect.y, 60f, headerRect.height);
+            Rect ToggleRect = new Rect(LabelRect.x + 60f, headerRect.y, 20f, headerRect.height);
+            EditorGUI.LabelField(LabelRect, "Loop");
+            loop.useTemplate = EditorGUI.Toggle(ToggleRect, loop.useTemplate);
         }
 
         // ===== PRESET =====
